@@ -79,3 +79,8 @@ Rook Industries (founded 2014, HQ Site Aleph, 241 staff) sells coordination and 
 - Cause of the drop is not tested. "Seasonal" can't be checked (no prior-year data). Repo module files assert a cause; treat that as their claim, not a finding.
 - Open: nobody owns the weekly numbers; the engineering manager's 14 Aug question and ticket 3043 are unanswered; Availability Confidence missing from 4.2 notes; ranking undocumented; Security Policy 4.1 not in the wiki.
 - Other product complaints from interviews and tickets: filters reset silently, small text, no dark mode, identical alert sounds, slow requisition approvals, no reply on failure reports, poor catalog search, maintenance booked on busy days.
+- Session 2 compared 4 handler interviews (console-redesign scope; no responders, quartermasters or support staff interviewed) with the 147 tickets. Notes are in 02-super-hearing/my-work/ (interview-detail.md, ticket-data.md, analysis.md). 69 tickets match an interview complaint; 78 match nothing the handlers said.
+- Ticket groups: 30 "phone quiet / far fewer pings" and 15 "callout gone before they could answer", all open. 107 of 147 tickets were filed on or after 12 Aug, 40 before; all 83 open ones are on or after 12 Aug (earliest open: 3041). Timing only, not a cause.
+- Interviews were loud on console items with no tickets (live-callout alert, coverage-card confusion, too much clicking) and mild on the quiet phone, which is the largest ticket group.
+- Halloran praised maintenance scheduling, but tickets 3054 and 3109 report suits booked on a busy day (3109 still open).
+- Still open: no responders interviewed yet, so phone-side experience is secondhand; cause of the quiet and gone-before-answer tickets untested.
