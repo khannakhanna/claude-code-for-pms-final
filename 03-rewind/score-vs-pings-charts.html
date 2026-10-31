@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replayed score vs weekly pings</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --text: #0b0b0b; --text-2: #52514e; --grid: #e6e5e1; --marker: #52514e;
+    --vesper: #2a78d6; --farlight: #eb6834; --undertow: #1baf7a; --meteor: #eda100; --gale: #e87ba4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --grid: #333331; --marker: #c3c2b7;
+      --vesper: #3987e5; --farlight: #d95926; --undertow: #199e70; --meteor: #c98500; --gale: #d55181;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --grid: #333331; --marker: #c3c2b7;
+    --vesper: #3987e5; --farlight: #d95926; --undertow: #199e70; --meteor: #c98500; --gale: #d55181;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 820px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0; }
+  p.sub { margin: 0 0 8px; color: var(--text-2); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px 20px; margin-top: 20px; }
+  .card p { margin: 0; font-size: 12px; color: var(--text-2); }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--text-2); font-size: 10px; font-family: inherit; }
+  svg text.strong { fill: var(--text); font-weight: 600; }
+  .takeaway { margin: 20px 0 0; font-size: 14px; }
+  details { margin-top: 16px; font-size: 13px; color: var(--text-2); }
+  table { border-collapse: collapse; margin-top: 6px; }
+  th, td { padding: 2px 10px 2px 0; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .note { margin-top: 28px; color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Replayed acceptance score vs weekly pings</h1>
+  <p class="sub">Upper panel: pings received each week. Lower panel: the reconstructed recent-acceptance score at the end of that week (0 to 1). Same scales on every card. The dashed line is the week Release 4.2 shipped (12 Aug).</p>
+
+  <div class="grid" id="grid"></div>
+
+  <p class="takeaway">For the four quiet responders the score falls in the week of 10 Aug and the pings follow it down. The Gale's score stays at 0.84 or above and its pings rise.</p>
+
+  <details><summary>Table view</summary><div id="tbl"></div></details>
+
+  <p class="note">The score is my reconstruction from the ping outcomes using the rules in <code>00-rook/code/dispatch-routing</code> (start 0.5; +0.08 taken; −0.12 turned down or missed; kept between 0 and 1), not a stored value. It covers recent acceptance only. Proximity and capability match are not in the database, so they are not shown. Farlight had no pings in the week of 31 Aug; its score is carried at 0. The charts show timing, not cause.</p>
+</main>
+
+<script>
+const weeks = ['29 Jun','6 Jul','13 Jul','20 Jul','27 Jul','3 Aug','10 Aug','17 Aug','24 Aug','31 Aug'];
+const people = [
+  ['Vesper',       'var(--vesper)',   [14,13,15,14,13,14,12,5,2,1],   [0.88,1,1,1,0.88,0.96,0.68,0.28,0.04,0]],
+  ['Farlight',     'var(--farlight)', [12,12,11,12,13,12,10,3,1,0],   [0.86,1,1,1,1,0.80,0.40,0.04,0,0]],
+  ['The Undertow', 'var(--undertow)', [12,11,12,13,12,12,11,4,1,1],   [0.86,1,1,0.96,0.92,1,0.32,0.04,0,0]],
+  ['Meteor Mite',  'var(--meteor)',   [11,12,10,11,12,11,10,4,2,1],   [0.58,0.88,0.76,0.84,0.88,1,0.56,0.28,0.04,0]],
+  ['The Gale (comparison)', 'var(--gale)', [13,12,13,14,13,13,15,17,20,21], [0.84,1,0.96,1,0.84,1,0.84,1,1,0.96]]
+];
+
+const W = 360, L = 30, R = 10, n = weeks.length;
+const slot = (W - L - R) / n, cx = i => L + slot * i + slot / 2;
+// bars panel
+const bT = 14, bB = 84, bMax = 22, by = v => bB - v / bMax * (bB - bT);
+// score panel
+const sT = 112, sB = 182, sy = v => sB - v * (sB - sT);
+const H = 214;
+
+function card([name, color, pings, score]) {
+  let s = '';
+  // grids + axes
+  [0, 10, 20].forEach(v => s += `<line x1="${L}" x2="${W - R}" y1="${by(v)}" y2="${by(v)}" stroke="var(--grid)"/><text x="${L - 5}" y="${by(v) + 3}" text-anchor="end">${v}</text>`);
+  [0, 0.5, 1].forEach(v => s += `<line x1="${L}" x2="${W - R}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text x="${L - 5}" y="${sy(v) + 3}" text-anchor="end">${v}</text>`);
+  s += `<text x="${L}" y="${bT - 4}">pings per week</text><text x="${L}" y="${sT - 6}">score at end of week</text>`;
+  // release marker (week of 10 Aug)
+  const mx = L + slot * 6;
+  s += `<line x1="${mx}" x2="${mx}" y1="${bT}" y2="${sB}" stroke="var(--marker)" stroke-dasharray="3 3"/>`;
+  // bars
+  const bw = slot * 0.6;
+  pings.forEach((v, i) => {
+    s += `<rect x="${cx(i) - bw / 2}" y="${by(v)}" width="${bw}" height="${Math.max(0, bB - by(v))}" rx="2" fill="${color}"><title>${name}, week of ${weeks[i]}: ${v} pings</title></rect>`;
+  });
+  s += `<text x="${cx(n - 1)}" y="${by(pings[n - 1]) - 4}" text-anchor="middle" class="strong">${pings[n - 1]}</text>`;
+  // score line
+  s += `<polyline fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" points="${score.map((v, i) => `${cx(i)},${sy(v)}`).join(' ')}"/>`;
+  score.forEach((v, i) => {
+    s += `<circle cx="${cx(i)}" cy="${sy(v)}" r="4" fill="${color}" stroke="var(--surface)" stroke-width="2"><title>${name}, week of ${weeks[i]}: score ${v}</title></circle>`;
+  });
+  s += `<text x="${cx(n - 1)}" y="${sy(score[n - 1]) - 8}" text-anchor="middle" class="strong">${score[n - 1]}</text>`;
+  // x labels
+  [0, 3, 6, 9].forEach(i => s += `<text x="${cx(i)}" y="${sB + 14}" text-anchor="middle">${weeks[i]}</text>`);
+  return `<div class="card"><h2>${name}</h2><svg viewBox="0 0 ${W} ${H}" role="img">${s}</svg></div>`;
+}
+document.getElementById('grid').innerHTML = people.map(card).join('');
+
+document.getElementById('tbl').innerHTML = '<table><tr><th>Week of</th>' +
+  people.map(p => `<th>${p[0].replace(' (comparison)', '')} pings</th><th>score</th>`).join('') + '</tr>' +
+  weeks.map((w, i) => `<tr><td>${w}</td>${people.map(p => `<td>${p[2][i]}</td><td>${p[3][i]}</td>`).join('')}</tr>`).join('') + '</table>';
+</script>
+</body>
+</html>

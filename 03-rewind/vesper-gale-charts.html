@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vesper, The Gale and Old Town pings</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --text: #0b0b0b; --text-2: #52514e; --grid: #e6e5e1;
+    --vesper: #2a78d6; --gale: #e87ba4; --nightwell: #eb6834; --vantage: #1baf7a; --longcast: #eda100; --none: #b9b8b2;
+    --marker: #52514e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --grid: #333331;
+      --vesper: #3987e5; --gale: #d55181; --nightwell: #d95926; --vantage: #199e70; --longcast: #c98500; --none: #5d5c57;
+      --marker: #c3c2b7;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --grid: #333331;
+    --vesper: #3987e5; --gale: #d55181; --nightwell: #d95926; --vantage: #199e70; --longcast: #c98500; --none: #5d5c57;
+    --marker: #c3c2b7;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 2px; }
+  p.sub { margin: 0 0 8px; color: var(--text-2); font-size: 14px; }
+  section { margin-top: 36px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0; font-size: 13px; color: var(--text-2); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--text-2); font-size: 11px; font-family: inherit; }
+  svg text.strong { fill: var(--text); font-weight: 600; }
+  .takeaway { margin: 8px 0 0; font-size: 14px; }
+  details { margin-top: 8px; font-size: 13px; color: var(--text-2); }
+  table { border-collapse: collapse; margin-top: 6px; }
+  th, td { padding: 2px 10px 2px 0; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .note { margin-top: 36px; color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vesper, The Gale and the Old Town callouts</h1>
+  <p class="sub">Source: Rook database, <code>pings</code>, <code>callouts</code> and <code>responders</code> tables, 29 Jun to 6 Sep 2026. Release 4.2 shipped on 12 Aug.</p>
+
+  <section>
+    <h2>1. Pings per week: Vesper vs The Gale</h2>
+    <p class="sub">Each pair of columns is one week. Before the week of 10 Aug the two look alike; after it they split.</p>
+    <div class="legend"><span><i style="background:var(--vesper)"></i>Vesper (Old Town)</span><span><i style="background:var(--gale)"></i>The Gale (Eastgate)</span></div>
+    <div id="c1"></div>
+    <p class="takeaway">Vesper falls from 14 pings a week to 1. The Gale rises from 13 to 21.</p>
+    <details><summary>Table view</summary><div id="t1"></div></details>
+  </section>
+
+  <section>
+    <h2>2. Who is pinged first on an Old Town callout</h2>
+    <p class="sub">Share of Old Town callouts by the responder pinged first. Before 12 Aug: 72 callouts. From 12 Aug: 38 callouts.</p>
+    <div class="legend"><span><i style="background:var(--vesper)"></i>Vesper</span><span><i style="background:var(--nightwell)"></i>Nightwell</span><span><i style="background:var(--vantage)"></i>Captain Vantage</span><span><i style="background:var(--longcast)"></i>The Longcast</span></div>
+    <div id="c2"></div>
+    <p class="takeaway">Vesper goes from first on 61 of 72 callouts to first on 5 of 38. Nightwell, Captain Vantage and The Longcast, none based in Old Town, are first on the rest.</p>
+  </section>
+
+  <section>
+    <h2>3. Who takes an Old Town callout</h2>
+    <p class="sub">Share of Old Town callouts by the responder who took it.</p>
+    <div class="legend"><span><i style="background:var(--vesper)"></i>Vesper</span><span><i style="background:var(--nightwell)"></i>Nightwell</span><span><i style="background:var(--vantage)"></i>Captain Vantage</span><span><i style="background:var(--longcast)"></i>The Longcast</span><span><i style="background:var(--none)"></i>No taken ping recorded</span></div>
+    <div id="c3"></div>
+    <p class="takeaway">Vesper took 70 of 72 callouts before 12 Aug and 5 of 38 after. The other 28 callouts, where Vesper was never pinged, were all taken by Captain Vantage, Nightwell or The Longcast.</p>
+  </section>
+
+  <p class="note">The charts show where the pings went, not why. The tables have no ranking scores, so they cannot say what changed the order.</p>
+</main>
+
+<script>
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const svg = (w, h, body) => `<svg viewBox="0 0 ${w} ${h}" role="img">${body}</svg>`;
+
+/* ---- data (from rook.pings, rook.callouts) ---- */
+const weeks = ['29 Jun','6 Jul','13 Jul','20 Jul','27 Jul','3 Aug','10 Aug','17 Aug','24 Aug','31 Aug'];
+const vesper = [[14,11,3,0],[13,10,2,1],[15,13,1,1],[14,11,3,0],[13,11,1,1],[14,12,2,0],[12,6,2,4],[5,1,1,3],[2,0,1,1],[1,0,0,1]];
+const gale   = [[13,10,2,1],[12,9,3,0],[13,10,3,0],[14,11,2,1],[13,11,1,1],[13,10,3,0],[15,9,3,3],[17,12,3,2],[20,14,4,2],[21,16,3,2]];
+
+const R = {
+  Vesper: 'var(--vesper)', Nightwell: 'var(--nightwell)', 'Captain Vantage': 'var(--vantage)',
+  'The Longcast': 'var(--longcast)', 'No taken ping recorded': 'var(--none)'
+};
+const firstPinged = [
+  ['Before 12 Aug', 72, [['Vesper', 61], ['Nightwell', 1], ['Captain Vantage', 4], ['The Longcast', 6]]],
+  ['From 12 Aug',   38, [['Vesper', 5], ['Nightwell', 12], ['Captain Vantage', 11], ['The Longcast', 10]]]
+];
+const tookIt = [
+  ['Before 12 Aug', 72, [['Vesper', 70], ['No taken ping recorded', 2]]],
+  ['From 12 Aug',   38, [['Vesper', 5], ['Nightwell', 13], ['Captain Vantage', 14], ['The Longcast', 4], ['No taken ping recorded', 2]]]
+];
+
+/* ---- chart 1: grouped columns, weekly pings ---- */
+(function () {
+  const W = 680, H = 300, L = 36, Rm = 8, T = 30, B = 36, ymax = 25;
+  const pw = W - L - Rm, ph = H - T - B, slot = pw / weeks.length, bw = 20, gap = 2;
+  const y = v => T + ph - v / ymax * ph;
+  let s = '';
+  [0, 5, 10, 15, 20, 25].forEach(v => {
+    s += `<line x1="${L}" x2="${W - Rm}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>` +
+         `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  });
+  weeks.forEach((w, i) => {
+    const x0 = L + slot * i + (slot - (2 * bw + gap)) / 2;
+    [['Vesper', vesper[i], 'var(--vesper)'], ['The Gale', gale[i], 'var(--gale)']].forEach(([n, d, c], k) => {
+      const x = x0 + k * (bw + gap);
+      s += `<rect x="${x}" y="${y(d[0])}" width="${bw}" height="${y(0) - y(d[0])}" rx="3" fill="${c}"><title>${n}, week of ${w}: ${d[0]} pings (${d[1]} taken, ${d[2]} turned down, ${d[3]} missed)</title></rect>`;
+      if (i >= 5) s += `<text x="${x + bw / 2}" y="${y(d[0]) - 4}" text-anchor="middle" class="strong">${d[0]}</text>`;
+    });
+    s += `<text x="${L + slot * i + slot / 2}" y="${H - B + 16}" text-anchor="middle">${w}</text>`;
+  });
+  const mx = L + slot * 6;
+  s += `<line x1="${mx}" x2="${mx}" y1="${T - 8}" y2="${y(0)}" stroke="var(--marker)" stroke-dasharray="3 3"/>` +
+       `<text x="${mx + 6}" y="${T - 12}" class="strong">Release 4.2 on 12 Aug</text>`;
+  document.getElementById('c1').innerHTML = svg(W, H, s);
+  document.getElementById('t1').innerHTML = '<table><tr><th>Week of</th><th>Vesper pings</th><th>taken</th><th>turned down</th><th>missed</th><th>Gale pings</th><th>taken</th><th>turned down</th><th>missed</th></tr>' +
+    weeks.map((w, i) => `<tr><td>${w}</td>${vesper[i].map(v => `<td>${v}</td>`).join('')}${gale[i].map(v => `<td>${v}</td>`).join('')}</tr>`).join('') + '</table>';
+})();
+
+/* ---- charts 2 and 3: 100% stacked horizontal bars with count labels ---- */
+function stacked(id, rows) {
+  const W = 680, L = 110, Rm = 8, bh = 34, gap = 74, T = 8;
+  const pw = W - L - Rm, H = T + rows.length * gap;
+  let s = '';
+  rows.forEach((r, i) => {
+    const yy = T + i * gap;
+    s += `<text x="${L - 10}" y="${yy + bh / 2 + 4}" text-anchor="end" class="strong">${r[0]}</text>`;
+    let x = L;
+    r[2].forEach(([n, v]) => {
+      const w = v / r[1] * pw;
+      s += `<rect x="${x}" y="${yy}" width="${w}" height="${bh}" fill="${R[n]}" stroke="var(--surface)" stroke-width="2"><title>${r[0]}: ${n}, ${v} of ${r[1]} callouts (${(v / r[1] * 100).toFixed(0)}%)</title></rect>`;
+      x += w;
+    });
+    const label = r[2].map(([n, v]) => `${n.replace('No taken ping recorded', 'None')} ${v}`).join('  ·  ');
+    s += `<text x="${L}" y="${yy + bh + 18}">${esc(label)}  (of ${r[1]})</text>`;
+  });
+  document.getElementById(id).innerHTML = svg(W, H, s);
+}
+stacked('c2', firstPinged);
+stacked('c3', tookIt);
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch pings before and after 4.2</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb;
+    --text: #0b0b0b;
+    --text-2: #52514e;
+    --grid: #e6e5e1;
+    --taken: #2a78d6;
+    --down: #eb6834;
+    --missed: #1baf7a;
+    --before: #86b6ef;
+    --after: #184f95;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --grid: #333331;
+      --taken: #3987e5; --down: #d95926; --missed: #199e70;
+      --before: #1c5cab; --after: #6da7ec;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --grid: #333331;
+    --taken: #3987e5; --down: #d95926; --missed: #199e70;
+    --before: #1c5cab; --after: #6da7ec;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 2px; }
+  p.sub { margin: 0 0 8px; color: var(--text-2); font-size: 14px; }
+  section { margin-top: 36px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0; font-size: 13px; color: var(--text-2); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--text-2); font-size: 11px; font-family: inherit; }
+  svg text.strong { fill: var(--text); font-weight: 600; }
+  .takeaway { margin: 8px 0 0; font-size: 14px; }
+  details { margin-top: 8px; font-size: 13px; color: var(--text-2); }
+  table { border-collapse: collapse; margin-top: 6px; }
+  th, td { padding: 2px 10px 2px 0; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .note { margin-top: 36px; color: var(--text-2); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Dispatch pings before and after Release 4.2</h1>
+  <p class="sub">Source: Rook database, <code>pings</code> table, 29 Jun to 6 Sep 2026 (1,696 pings). Release 4.2 shipped on 12 Aug.</p>
+
+  <section>
+    <h2>1. Each week's pings by outcome</h2>
+    <p class="sub">The break is the week of 10 Aug: the "missed" slice goes from a sliver to about a fifth of pings.</p>
+    <div class="legend"><span><i style="background:var(--taken)"></i>Taken</span><span><i style="background:var(--down)"></i>Turned down</span><span><i style="background:var(--missed)"></i>Missed</span></div>
+    <div id="c1"></div>
+    <p class="takeaway">Taken falls from 134 to 96 in one week. Missed rises from 2 to 38. Turned down barely moves.</p>
+    <details><summary>Table view</summary><div id="t1"></div></details>
+  </section>
+
+  <section>
+    <h2>2. Share of pings by outcome, before vs after 12 Aug</h2>
+    <p class="sub">Before: 29 Jun to 11 Aug (1,085 pings). After: 12 Aug to 6 Sep (611 pings).</p>
+    <div class="legend"><span><i style="background:var(--taken)"></i>Taken</span><span><i style="background:var(--down)"></i>Turned down</span><span><i style="background:var(--missed)"></i>Missed</span></div>
+    <div id="c2"></div>
+    <p class="takeaway">The acceptance drop (76.6% to 64.0%) is almost all missed pings: 2.3% before, 18.0% after.</p>
+  </section>
+
+  <section>
+    <h2>3. How often the first ping goes unanswered</h2>
+    <p class="sub">Share of callouts where the first responder pinged missed it.</p>
+    <div id="c3"></div>
+    <p class="takeaway">Before: 24 of 879 callouts. After: 94 of 440. More callouts now need a second ping (33% vs 22%).</p>
+  </section>
+
+  <section>
+    <h2>4. Pings per week, by responder</h2>
+    <p class="sub">Before = 6.3 weeks, after = 3.7 weeks, so both are shown as a weekly rate.</p>
+    <div class="legend"><span><i style="background:var(--before)"></i>Before 12 Aug</span><span><i style="background:var(--after)"></i>After 12 Aug</span></div>
+    <div id="c4"></div>
+    <p class="takeaway">Four responders (Vesper, Farlight, The Undertow, Meteor Mite) fall from about 11 to 14 pings a week to about 3 to 5. The other 12 stay roughly where they were.</p>
+  </section>
+
+  <p class="note">These charts show what changed, not why. The table has no ping-wait setting or ranking scores, so it cannot separate the ranking change from the 90 to 60 second ping wait.</p>
+</main>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+/* ---- data (from rook.pings) ---- */
+const weeks = [
+  ['29 Jun',132,37,3],['6 Jul',131,35,4],['13 Jul',133,35,6],['20 Jul',132,39,5],['27 Jul',132,34,4],
+  ['3 Aug',134,36,2],['10 Aug',96,43,38],['17 Aug',104,26,28],['24 Aug',108,30,24],['31 Aug',120,24,21]
+];
+const periods = [
+  ['Before 12 Aug', 831, 229, 25],
+  ['After 12 Aug', 391, 110, 110]
+];
+const firstPing = [['Before 12 Aug', 24, 879], ['After 12 Aug', 94, 440]];
+const resp = [
+  ['Vesper',86,17],['Farlight',75,11],['The Undertow',75,14],['Meteor Mite',70,14],
+  ['Captain Vantage',76,59],['Cindermark',57,42],['Corporal Ashgrove',63,29],['Halfmoon',69,33],
+  ['Ironvale',51,39],['Nightwell',95,70],['Sgt. Bulwark',57,39],['Sgt. Falkirk',63,52],
+  ['Stormwrack',82,63],['The Drift',39,28],['The Gale',82,69],['The Longcast',45,32]
+];
+const BEFORE_WEEKS = 44 / 7, AFTER_WEEKS = 26 / 7;
+
+const col = { taken: 'var(--taken)', down: 'var(--down)', missed: 'var(--missed)' };
+const svg = (vb, body) => `<svg viewBox="0 0 ${vb[0]} ${vb[1]}" role="img">${body}</svg>`;
+
+/* ---- chart 1: weekly stacked columns ---- */
+(function () {
+  const W = 680, H = 300, L = 36, R = 8, T = 28, B = 36, ymax = 180;
+  const pw = W - L - R, ph = H - T - B, slot = pw / weeks.length, bw = 40;
+  const y = v => T + ph - v / ymax * ph;
+  let s = '';
+  [0, 60, 120, 180].forEach(v => {
+    s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>` +
+         `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  });
+  weeks.forEach((w, i) => {
+    const x = L + slot * i + (slot - bw) / 2;
+    let acc = 0;
+    [['Taken', w[1], 'taken'], ['Turned down', w[2], 'down'], ['Missed', w[3], 'missed']].forEach(([n, v, k]) => {
+      const y0 = y(acc), y1 = y(acc + v);
+      s += `<rect x="${x}" y="${y1}" width="${bw}" height="${y0 - y1}" fill="${col[k]}" stroke="var(--surface)" stroke-width="2"><title>Week of ${w[0]}: ${n} ${v}</title></rect>`;
+      acc += v;
+    });
+    s += `<text x="${x + bw / 2}" y="${H - B + 16}" text-anchor="middle">${w[0]}</text>`;
+  });
+  const hx = L + slot * 6 + slot / 2;
+  s += `<text x="${hx}" y="${y(177) - 14}" text-anchor="middle" class="strong">4.2 ships 12 Aug · 38 missed</text>`;
+  document.getElementById('c1').innerHTML = svg([W, H], s);
+  document.getElementById('t1').innerHTML = '<table><tr><th>Week of</th><th>Taken</th><th>Turned down</th><th>Missed</th></tr>' +
+    weeks.map(w => `<tr><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td><td>${w[3]}</td></tr>`).join('') + '</table>';
+})();
+
+/* ---- chart 2: 100% stacked horizontal bars ---- */
+(function () {
+  const W = 680, L = 110, R = 8, bh = 30, gap = 62, T = 8;
+  const pw = W - L - R, H = T + periods.length * gap;
+  let s = '';
+  periods.forEach((p, i) => {
+    const tot = p[1] + p[2] + p[3], yy = T + i * gap;
+    s += `<text x="${L - 10}" y="${yy + bh / 2 + 4}" text-anchor="end" class="strong">${p[0]}</text>`;
+    let x = L;
+    [['Taken', p[1], 'taken'], ['Turned down', p[2], 'down'], ['Missed', p[3], 'missed']].forEach(([n, v, k]) => {
+      const w = v / tot * pw;
+      s += `<rect x="${x}" y="${yy}" width="${w}" height="${bh}" fill="${col[k]}" stroke="var(--surface)" stroke-width="2"><title>${p[0]}: ${n} ${v} of ${tot} (${(v / tot * 100).toFixed(1)}%)</title></rect>`;
+      x += w;
+    });
+    const pct = v => (v / tot * 100).toFixed(1) + '%';
+    s += `<text x="${L}" y="${yy + bh + 17}">Taken ${pct(p[1])}  ·  Turned down ${pct(p[2])}  ·  Missed ${pct(p[3])}</text>`;
+  });
+  document.getElementById('c2').innerHTML = svg([W, H], s);
+})();
+
+/* ---- chart 3: first ping missed ---- */
+(function () {
+  const W = 680, L = 110, R = 70, bh = 26, gap = 44, T = 8, max = 25;
+  const pw = W - L - R, H = T + firstPing.length * gap;
+  let s = '';
+  firstPing.forEach((p, i) => {
+    const pct = p[1] / p[2] * 100, yy = T + i * gap, w = pct / max * pw;
+    s += `<text x="${L - 10}" y="${yy + bh / 2 + 4}" text-anchor="end" class="strong">${p[0]}</text>` +
+         `<rect x="${L}" y="${yy}" width="${w}" height="${bh}" rx="4" fill="var(--missed)"><title>${p[0]}: ${p[1]} of ${p[2]} first pings missed</title></rect>` +
+         `<text x="${L + w + 8}" y="${yy + bh / 2 + 4}" class="strong">${pct.toFixed(1)}%</text>`;
+  });
+  document.getElementById('c3').innerHTML = svg([W, H], s);
+})();
+
+/* ---- chart 4: pings per week by responder ---- */
+(function () {
+  const W = 680, L = 140, R = 40, rowH = 30, bh = 10, T = 8, max = 18;
+  const pw = W - L - R, H = T + resp.length * rowH;
+  let s = '';
+  [0, 6, 12, 18].forEach(v => {
+    const x = L + v / max * pw;
+    s += `<line x1="${x}" x2="${x}" y1="${T}" y2="${H}" stroke="var(--grid)"/><text x="${x}" y="${H + 12}" text-anchor="middle">${v}</text>`;
+  });
+  resp.forEach((r, i) => {
+    const yy = T + i * rowH, b = r[1] / BEFORE_WEEKS, a = r[2] / AFTER_WEEKS;
+    s += `<text x="${L - 10}" y="${yy + rowH / 2 + 1}" text-anchor="end">${esc(r[0])}</text>` +
+         `<rect x="${L}" y="${yy + 3}" width="${b / max * pw}" height="${bh}" rx="3" fill="var(--before)"><title>${esc(r[0])} before: ${b.toFixed(1)} pings/week (${r[1]} total)</title></rect>` +
+         `<rect x="${L}" y="${yy + 3 + bh + 2}" width="${a / max * pw}" height="${bh}" rx="3" fill="var(--after)"><title>${esc(r[0])} after: ${a.toFixed(1)} pings/week (${r[2]} total)</title></rect>` +
+         `<text x="${L + b / max * pw + 6}" y="${yy + 3 + bh - 1}">${b.toFixed(1)}</text>` +
+         `<text x="${L + a / max * pw + 6}" y="${yy + 3 + 2 * bh + 1}" class="strong">${a.toFixed(1)}</text>`;
+  });
+  document.getElementById('c4').innerHTML = svg([W, H + 20], s);
+})();
+</script>
+</body>
+</html>
