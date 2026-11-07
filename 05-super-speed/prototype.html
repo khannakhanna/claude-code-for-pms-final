@@ -87,7 +87,7 @@
 <body>
 <div class="wrap">
   <h1>Dispatch: let a quiet responder earn their way back</h1>
-  <p class="sub">Prototype for Helen. Example people and made-up numbers, not Rook data. Score rules (+0.08 taken, −0.12 missed or turned down) follow the routing code. Before 4.2: weights 0.45 / 0.40 / 0.15 and a 90-second wait. After 4.2: 0.60 / 0.25 / 0.15 and 60 seconds; the recovery rate is invented for illustration.</p>
+  <p class="sub">Prototype for Helen. Example people and made-up numbers, not Rook data. Score rules (+0.08 taken, −0.12 missed or turned down) follow the routing code. Before 4.2: weights 0.45 / 0.40 / 0.15 and a 90-second wait. After 4.2: 0.60 / 0.25 / 0.15 and 60 seconds; the recovery rate is invented for illustration. One simulated quiet responder drives both screens: Meteor Mite on Kip's console and Vesper on the phone (simplification: in the real data their patterns differ).</p>
 
   <div class="controls">
     <div class="ctl">
@@ -135,7 +135,7 @@
   <div class="grid">
     <div class="card" id="console">
       <h2>Kip's handler console · who gets pinged first</h2>
-      <div class="callout"><b>New callout · Old Town · structural collapse (example)</b>Ranked responders, best match first. Click a row to see why.</div>
+      <div class="callout"><b>New callout · Eastgate · structural collapse (example)</b>Ranked responders, best match first. Click a row to see why.</div>
       <table>
         <thead><tr><th></th><th>Responder</th><th>Match score</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
@@ -149,7 +149,7 @@
         <h2>Vesper's phone app</h2>
         <div class="phonewrap"><div class="phone" id="phone"></div></div>
       </div>
-      <p class="legend">Press "Simulate a callout" on the phone, then take it, turn it down, or let the 60 seconds run out. Watch Vesper's rank change on the console.</p>
+      <p class="legend">Press "Simulate a callout" on the phone, then take it, turn it down, or let the 60 seconds run out. Watch the quiet responder's rank change on Kip's console.</p>
     </div>
   </div>
 </div>
@@ -162,8 +162,8 @@
     { id: "n", name: "Nightwell",      prox: 0.62, acc: 0.85, cap: 1.00 },
     { id: "v", name: "Captain Vantage",prox: 0.56, acc: 0.70, cap: 1.00 },
     { id: "l", name: "The Longcast",   prox: 0.55, acc: 0.62, cap: 0.75 },
-    { id: "d", name: "Example D",      prox: 0.50, acc: 0.60, cap: 0.75 },
-    { id: "s", name: "Vesper",         prox: 0.60, acc: null, cap: 1.00, me: true }
+    { id: "g", name: "The Gale",       prox: 0.55, acc: 0.90, cap: 1.00 },
+    { id: "s", name: "Meteor Mite",    prox: 0.60, acc: null, cap: 1.00, me: true }
   ];
   var pingsToday = [2, 1, 1, 1, 1, 1, 1];
   var pingsRecov = [2, 3, 5, 7, 9, 10, 11];
@@ -195,7 +195,7 @@
     var el = document.getElementById("log");
     if (!state.log.length) { el.innerHTML = '<div class="empty">No pings yet. Run a scenario or simulate one on the phone.</div>'; return; }
     el.innerHTML = state.log.map(function (l) {
-      return '<div class="' + (l.k === "t" ? "t" : "m") + '"><span>' + l.text + '</span><span>score ' + f2(l.after) + ' · Vesper ranked ' + l.rank + '</span></div>';
+      return '<div class="' + (l.k === "t" ? "t" : "m") + '"><span>' + l.text + '</span><span>score ' + f2(l.after) + ' · ranked ' + l.rank + ' on the console' + '</span></div>';
     }).join("");
   }
   function runSeq(seq, startAt) {
@@ -249,9 +249,9 @@
       var a = vesperAcc();
       d += '<p>Recent acceptance score: <b>' + f2(a) + '</b> (a new responder starts at 0.50).</p>';
       if (state.release === "before") {
-        d += '<p>Before 4.2 the ping waited 90 seconds and recent acceptance counted for more (0.40, now 0.25). Vesper sits at the top of the list.</p>';
+        d += '<p>Before 4.2 the ping waited 90 seconds and recent acceptance counted for more (0.40, now 0.25). ' + p.name + ' sits at the top of the list.</p>';
       } else if (state.mode === "today") {
-        d += '<p>Nothing fades. Old misses keep counting until Vesper takes about 6–7 pings in a row, and a low-ranked responder is rarely pinged at all.</p>';
+        d += '<p>Nothing fades. Old misses keep counting until ' + p.name + ' takes about 6–7 pings in a row, and a low-ranked responder is rarely pinged at all.</p>';
       } else {
         d += '<p>Old misses lose weight each week, so the score drifts back toward 0.50 even while pings are scarce. Kip sees the “Recovering” marker instead of an unexplained low rank.</p>';
       }
