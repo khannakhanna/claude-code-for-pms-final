@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release 4.2 final report</title>
+<style>
+  :root {
+    --bg:#f5f6f9; --bg2:#ffffff; --ink:#18202e; --muted:#5b6578; --line:#dfe3ec;
+    --blue:#2457d6; --blue-soft:#e6edff; --red:#c8352b; --red-soft:#fdeceb;
+    --amber:#b4620a; --amber-soft:#fff2dc; --green:#1b8050; --green-soft:#e2f5ea;
+    --grey:#8a93a6; --shadow:0 8px 28px rgba(24,32,46,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f131a; --bg2:#171c26; --ink:#e9edf5; --muted:#9ba5b9; --line:#2a3242;
+      --blue:#7a9eff; --blue-soft:#1d2a52; --red:#ff8179; --red-soft:#3b1d1c;
+      --amber:#f2a65a; --amber-soft:#3a2b15; --green:#5fd09a; --green-soft:#15342a;
+      --grey:#7d879b; --shadow:0 8px 28px rgba(0,0,0,.35); }
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } .reveal { transition:none !important; opacity:1 !important; transform:none !important; } }
+  #progress { position:fixed; top:0; left:0; height:4px; width:0; background:linear-gradient(90deg,var(--blue),var(--amber)); z-index:50; }
+  #dots { position:fixed; right:14px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:9px; z-index:40; }
+  #dots button { width:11px; height:11px; border-radius:50%; border:2px solid var(--grey); background:transparent; padding:0; cursor:pointer; }
+  #dots button.on { background:var(--blue); border-color:var(--blue); transform:scale(1.25); }
+  @media (max-width:760px) { #dots { display:none; } }
+  .slide { min-height:100vh; padding:64px 8vw 56px; display:flex; flex-direction:column; justify-content:center; position:relative; }
+  .slide:nth-child(even) { background:var(--bg2); }
+  .wrap { max-width:1080px; width:100%; margin:0 auto; }
+  .kicker { font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--blue); margin:0 0 10px; }
+  h1 { font-size:clamp(34px,5.6vw,60px); line-height:1.08; margin:0 0 16px; letter-spacing:-.02em; }
+  h2 { font-size:clamp(26px,3.6vw,38px); line-height:1.15; margin:0 0 14px; letter-spacing:-.01em; }
+  h3 { font-size:18px; margin:0 0 6px; }
+  p { margin:0 0 12px; } .lead { font-size:clamp(18px,2vw,22px); color:var(--muted); max-width:760px; }
+  .muted { color:var(--muted); } .small { font-size:14px; }
+  .reveal { opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity:1; transform:none; }
+  .title { background:linear-gradient(135deg,#16224a 0%,#2457d6 55%,#b4620a 140%); color:#fff; }
+  .title .kicker { color:#ffd9a8; } .title .lead { color:#dbe4ff; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+  .chip { font-size:13px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); }
+  .grid { display:grid; gap:16px; } .g2 { grid-template-columns:1fr 1fr; } .g3 { grid-template-columns:repeat(3,1fr); } .g4 { grid-template-columns:repeat(4,1fr); }
+  @media (max-width:900px) { .g2,.g3,.g4 { grid-template-columns:1fr; } }
+  .card { background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:18px 20px; box-shadow:var(--shadow); }
+  .slide:nth-child(even) .card { background:var(--bg); box-shadow:none; }
+  .stat { text-align:left; } .stat b { display:block; font-size:clamp(34px,4.4vw,52px); line-height:1; letter-spacing:-.02em; }
+  .stat span { color:var(--muted); font-size:15px; display:block; margin-top:6px; }
+  .red { color:var(--red); } .green { color:var(--green); } .amber { color:var(--amber); } .blue { color:var(--blue); }
+  .tag { display:inline-block; font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px; margin-right:6px; }
+  .tag.k { background:var(--green-soft); color:var(--green); } .tag.u { background:var(--amber-soft); color:var(--amber); }
+  .tag.j { background:var(--blue-soft); color:var(--blue); }
+  .timeline { display:flex; gap:0; margin-top:26px; position:relative; }
+  .timeline:before { content:""; position:absolute; left:0; right:0; top:11px; height:3px; background:var(--line); }
+  .tl { flex:1; padding-top:30px; position:relative; padding-right:10px; font-size:15px; }
+  .tl:before { content:""; position:absolute; top:4px; left:0; width:16px; height:16px; border-radius:50%; background:var(--blue); border:3px solid var(--bg2); }
+  .tl.hot:before { background:var(--red); } .tl b { display:block; }
+  @media (max-width:760px) { .timeline { flex-direction:column; } .timeline:before { display:none; } .tl { padding:0 0 14px 28px; } .tl:before { top:4px; } }
+  svg { width:100%; height:auto; display:block; }
+  svg text { fill:var(--muted); font-size:12px; font-family:inherit; }
+  svg .big { font-size:13px; font-weight:700; }
+  svg .halo { paint-order:stroke; stroke:var(--bg2); stroke-width:4px; stroke-linejoin:round; }
+  .slide:nth-child(even) svg .halo { stroke:var(--bg2); }
+  .flow { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin:18px 0 8px; }
+  @media (max-width:900px) { .flow { grid-template-columns:1fr 1fr; } }
+  .step { background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:12px; font-size:14.5px; position:relative; }
+  .step em { font-style:normal; font-weight:800; font-size:12px; color:var(--blue); display:block; margin-bottom:4px; }
+  .step.bad { border-color:var(--red); background:var(--red-soft); } .step.bad em { color:var(--red); }
+  .loopback { border:2px dashed var(--red); border-top:none; border-radius:0 0 18px 18px; text-align:center; color:var(--red); font-weight:700; font-size:14px; padding:6px; margin:0 6% 8px; }
+  .mod { display:flex; flex-direction:column; gap:10px; }
+  .modhead { display:flex; align-items:center; gap:10px; }
+  .num { width:34px; height:34px; border-radius:50%; background:var(--blue); color:#fff; display:grid; place-items:center; font-weight:800; flex:none; }
+  .mod h3 { margin:0; } .mod .name { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
+  blockquote { margin:0; padding:10px 14px; border-left:4px solid var(--amber); background:var(--amber-soft); border-radius:0 10px 10px 0; font-size:14.5px; font-style:italic; }
+  .qlabel { font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--amber); margin-bottom:3px; }
+  .artifact { font-size:13px; color:var(--muted); } .artifact code { background:var(--blue-soft); color:var(--blue); padding:1px 7px; border-radius:6px; font-size:12.5px; }
+  .frame { border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--bg2); box-shadow:var(--shadow); }
+  .frame .bar { display:flex; gap:7px; padding:9px 12px; border-bottom:1px solid var(--line); align-items:center; font-size:12px; color:var(--muted); }
+  .frame .bar i { width:10px; height:10px; border-radius:50%; background:var(--line); display:inline-block; }
+  iframe { width:100%; height:640px; border:0; background:#fff; }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted); margin-top:6px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .tests { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+  @media (max-width:900px) { .tests { grid-template-columns:1fr 1fr; } }
+  .test { border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:14px; background:var(--bg); }
+  .test b { display:block; } .test.fail { border-color:var(--red); background:var(--red-soft); } .test.pass { border-color:var(--green); background:var(--green-soft); }
+  .btnrow { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+  a.btn { display:inline-block; padding:9px 16px; border-radius:10px; background:var(--blue); color:#fff; text-decoration:none; font-weight:600; font-size:15px; }
+  a.btn.alt { background:transparent; color:var(--blue); border:1px solid var(--blue); }
+  ul { margin:6px 0 12px; padding-left:20px; } li { margin-bottom:5px; }
+  .hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); font-size:13px; opacity:.8; }
+  table { border-collapse:collapse; width:100%; font-size:14.5px; } td,th { text-align:left; padding:8px 10px; border-top:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; border-top:0; }
+  footer { padding:24px 8vw 40px; color:var(--muted); font-size:13px; text-align:center; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<nav id="dots" aria-label="Slides"></nav>
+
+<!-- 1. Title -->
+<section class="slide title" data-title="Title">
+  <div class="wrap">
+    <p class="kicker reveal">Rook Dispatch · final report</p>
+    <h1 class="reveal">Release 4.2: what happened, what we found, and how we stop it happening again</h1>
+    <p class="lead reveal">Six modules of work, one story: four responders quietly stopped getting pings, and a weekly average hid it.</p>
+    <div class="chips reveal">
+      <span class="chip">1 Origin Story</span><span class="chip">2 Super Hearing</span><span class="chip">3 Rewind</span>
+      <span class="chip">4 X-Ray Vision</span><span class="chip">5 Super Speed</span><span class="chip">6 Sidekicks</span>
+    </div>
+    <p class="small reveal" style="margin-top:28px;opacity:.85">By the Dispatch PM · 7 Nov 2026 · Rook Industries is a fictional course scenario, and every figure here comes from the course database, wiki and code.</p>
+  </div>
+  <div class="hint">Scroll, or press → / ↓</div>
+</section>
+
+<!-- 2. What happened -->
+<section class="slide" data-title="What happened">
+  <div class="wrap">
+    <p class="kicker reveal">What happened</p>
+    <h2 class="reveal">Release 4.2 shipped clean. Then the phones went quiet.</h2>
+    <p class="lead reveal">On 12 August, Dispatch changed two things at once: it counted distance for more when choosing who to ping, and it gave each responder 60 seconds to answer instead of 90. No rollback, no alarms. A week later the complaints began.</p>
+    <div class="grid g4" style="margin-top:20px">
+      <div class="card stat reveal"><b class="red" data-count="38">38</b><span>pings missed in the week of 10 Aug, against 2 to 6 a week before</span></div>
+      <div class="card stat reveal"><b class="amber" data-count="54">54%</b><span>of pings taken that week, down from 75 to 78%</span></div>
+      <div class="card stat reveal"><b class="red">83</b><span>open support tickets, every one filed since 12 Aug</span></div>
+      <div class="card stat reveal"><b class="blue">3×</b><span>normal callout ticket volume reported by support from 18 Aug</span></div>
+    </div>
+    <div class="timeline reveal">
+      <div class="tl"><b>12 Aug</b>4.2 ships. Wait cut 90 → 60 s, distance weighted up.</div>
+      <div class="tl"><b>14 Aug</b>Engineering manager asks if decliners were meant to be treated the same. No answer recorded.</div>
+      <div class="tl hot"><b>18 Aug</b>Support: tickets ~3× normal. "My phone never goes off."</div>
+      <div class="tl hot"><b>26 Aug</b>Still elevated: two thirds "never goes off", one third "gone before I could answer".</div>
+      <div class="tl"><b>28 Aug</b>New PM gets a week to look before the team regroups.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Average hid it -->
+<section class="slide" data-title="The average hid it">
+  <div class="wrap">
+    <p class="kicker reveal">The headline number</p>
+    <h2 class="reveal">The weekly average recovered. The problem did not.</h2>
+    <p class="lead reveal">Acceptance fell to 54% in the week of 4.2, then climbed back to 73%. Read as a single number, that looks like a dip. Look at the misses and it is a step change that never went away.</p>
+    <div class="card reveal"><svg id="chartA" viewBox="0 0 760 330" role="img" aria-label="Missed pings per week as bars and share of pings taken as a line, with the 4.2 release marked"></svg>
+      <div class="legend"><span><i style="background:var(--red)"></i>Missed pings per week</span><span><i style="background:var(--blue)"></i>Share of pings taken (%)</span><span><i style="background:var(--amber)"></i>4.2 ships, 12 Aug</span></div></div>
+  </div>
+</section>
+
+<!-- 4. Four responders -->
+<section class="slide" data-title="Four went quiet">
+  <div class="wrap">
+    <p class="kicker reveal">Who it hit</p>
+    <h2 class="reveal">Four responders went from about 12 pings a week to one.</h2>
+    <p class="lead reveal">Farlight, Meteor Mite, The Undertow and Vesper. The other twelve responders were pinged more than before. The Gale, in the same area and under the same handler as Meteor Mite, went from 13 to 21.</p>
+    <div class="card reveal"><svg id="chartB" viewBox="0 0 760 330" role="img" aria-label="Average pings per responder per week for the four quiet responders, the other twelve, and The Gale"></svg>
+      <div class="legend"><span><i style="background:var(--red)"></i>The four who went quiet (average each)</span><span><i style="background:var(--grey)"></i>The other 12 (average each)</span><span><i style="background:var(--green)"></i>The Gale</span></div></div>
+  </div>
+</section>
+
+<!-- 5. Why -->
+<section class="slide" data-title="Why they stay quiet">
+  <div class="wrap">
+    <p class="kicker reveal">Why they stay quiet</p>
+    <h2 class="reveal">A miss counts the same as a "no", and nothing ever fades.</h2>
+    <p class="lead reveal">Dispatch scores each responder on how often they take pings. Every missed ping costs 0.12. Only a taken ping adds back (0.08). Once the score is low the responder is rarely asked, so there is little chance to earn it back.</p>
+    <div class="flow reveal">
+      <div class="step"><em>1</em>A ping goes out to a phone.</div>
+      <div class="step"><em>2</em>No answer in 60 seconds (it was 90). Counted as <b>missed</b>.</div>
+      <div class="step bad"><em>3</em>Score drops 0.12, the same as saying no.</div>
+      <div class="step bad"><em>4</em>Ranked lower, and distance now counts for more than history.</div>
+      <div class="step bad"><em>5</em>Fewer pings reach them.</div>
+      <div class="step bad"><em>6</em>Fewer chances to earn +0.08 back. About 7 takes in a row are needed from zero.</div>
+    </div>
+    <div class="loopback reveal">↺ and round again</div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card reveal"><h3>Vesper's score, replayed from the pings</h3><svg id="chartC" viewBox="0 0 560 280" role="img" aria-label="Vesper's recent-acceptance score over time, falling to zero after 12 August"></svg>
+        <p class="small muted">Rebuilt with the code's rules from the pings table, starting at 0.50 on 29 Jun. Last taken ping: 17 Aug.</p></div>
+      <div class="card reveal"><h3>After 12 Aug, Vesper had 17 pings</h3>
+        <p><b class="green">5</b> taken · <b class="amber">3</b> turned down · <b class="red">9</b> missed.</p>
+        <p>The four quiet responders missed <b>33 of 56</b> pings (59%) after 12 Aug. The other twelve missed <b>77 of 555</b> (14%). Before 4.2, both groups missed about 2 to 3%.</p>
+        <p class="small muted">Turned-down pings did not rise (21.1% → 18.0%). Missed pings did.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Known / Unknown -->
+<section class="slide" data-title="Known and not known">
+  <div class="wrap">
+    <p class="kicker reveal">Being straight about it</p>
+    <h2 class="reveal">What the evidence shows, and what it does not.</h2>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card reveal"><span class="tag k">KNOWN</span><h3 style="margin-top:8px">Shown in the data and the code</h3>
+        <ul>
+          <li>Missed pings jumped on 12 Aug and stayed high.</li>
+          <li>A miss and a "no" cost the same score, and the score never decays.</li>
+          <li>Four responders' scores fell to about zero and their pings with them.</li>
+          <li>The ping wait did shrink: about 92 s between a miss and the next ping before, about 62 s after.</li>
+          <li>Support tickets follow the pattern, and the largest unmatched group is the quiet phone.</li>
+        </ul></div>
+      <div class="card reveal"><span class="tag u">NOT PROVEN</span><h3 style="margin-top:8px">Still open</h3>
+        <ul>
+          <li><b>Why the first misses happened.</b> Shorter wait or changed weights? The data has no answer times.</li>
+          <li>The idea that people who answered in 60 to 90 seconds now miss fits the code but is untested.</li>
+          <li>"It's seasonal": no earlier-year data to check.</li>
+          <li>Whether treating decliners the same was a decision. The 14 Aug question has no recorded answer.</li>
+          <li>What the console shows handlers like Kip today.</li>
+        </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Evidence 1-3 -->
+<section class="slide" data-title="Evidence, modules 1 to 3">
+  <div class="wrap">
+    <p class="kicker reveal">The evidence trail · modules 1 to 3</p>
+    <h2 class="reveal">Each finding came from a question I asked.</h2>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">1</div><div><div class="name">Origin Story</div><h3>Documents disagree</h3></div></div>
+        <p>Availability Confidence was promised for 4.2 but is missing from the release notes. Nobody owns the weekly numbers. The 14 Aug question about decliners is still unanswered.</p>
+        <div><div class="qlabel">The prompt I wrote (#1)</div><blockquote>What's contradictory or missing, not just in the company documents, but across Rook's wiki, its database, and the files in my repo?</blockquote></div>
+        <div class="artifact">Saved in <code>CLAUDE.md</code> → open items</div>
+      </div>
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">2</div><div><div class="name">Super Hearing</div><h3>Two piles that don't agree</h3></div></div>
+        <p>Of 147 tickets, 69 match something handlers said in interviews and <b>78 match nothing they said</b>. The biggest unmatched groups: 30 "phone quiet" and 15 "gone before they could answer", all open.</p>
+        <div><div class="qlabel">The prompt I wrote (#15)</div><blockquote>You've now read both piles. Where do they disagree? What's loud in the interviews but rare in the tickets, and what's all over the tickets that nobody brought up in the interviews?</blockquote></div>
+        <div class="artifact">Saved in <code>02-super-hearing/my-work/analysis.md</code></div>
+      </div>
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">3</div><div><div class="name">Rewind</div><h3>The step change in the pings</h3></div></div>
+        <p>Missed pings went from 2 to 6 a week to 38 in the week of 4.2. The first ping was missed on <b>21.4%</b> of callouts after 12 Aug, against 2.7% before.</p>
+        <div><div class="qlabel">The prompt I wrote (#2)</div><blockquote>What exactly changes after 12-August in terms of pings check from database?</blockquote></div>
+        <div class="artifact">Charted in <code>03-rewind/ping-charts.html</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Evidence 4-6 -->
+<section class="slide" data-title="Evidence, modules 4 to 6">
+  <div class="wrap">
+    <p class="kicker reveal">The evidence trail · modules 4 to 6</p>
+    <h2 class="reveal">From the cause, to a fix, to a safeguard.</h2>
+    <div class="grid g3" style="margin-top:14px">
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">4</div><div><div class="name">X-Ray Vision</div><h3>The rule behind the silence</h3></div></div>
+        <p>In the code a missed ping costs the same 0.12 as a "no", and the score never recovers by itself. Vesper's replay ends at <b>0.00</b>.</p>
+        <div><div class="qlabel">The prompt I wrote (#5)</div><blockquote>as per generated code flow, it shows missed also reduce the score by same number of someone declining.</blockquote></div>
+        <div class="artifact">Diagrammed in <code>04-x-ray-vision/recovery-flow.html</code></div>
+      </div>
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">5</div><div><div class="name">Super Speed</div><h3>A brief for the Director</h3></div></div>
+        <p>Helen asked for a one-pager and something to click through. The brief proposes <b>score recovery over time</b>, written for Kip (handler) and Vesper (responder), and it says what is still unproven.</p>
+        <div><div class="qlabel">The prompt I wrote (#5)</div><blockquote>Let us address DIrector's request one by one. Ask me one by one question so that we can build the brief together.</blockquote></div>
+        <div class="artifact">Saved as <code>05-super-speed/brief.md</code></div>
+      </div>
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">6</div><div><div class="name">Sidekicks</div><h3>Skills that check the work</h3></div></div>
+        <p>A <b>review-checklist</b> skill that tests a brief, and a <b>qa-testing</b> skill that tests a build. On my own brief and prototype: 3 of 6 brief checks failed; 18 of 19 acceptance criteria passed.</p>
+        <div><div class="qlabel">The prompt I wrote (#2)</div><blockquote>Make a skill called review-checklist. When I point it at a brief, it checks that the brief: names who owns it, says how we'll know it worked, keeps the same scope start to finish, and explains the problem before the fix.</blockquote></div>
+        <div class="artifact">Saved in <code>.claude/skills/review-checklist</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Fix / prototype -->
+<section class="slide" data-title="The fix, in my prototype">
+  <div class="wrap">
+    <p class="kicker reveal">The fix</p>
+    <h2 class="reveal">Let a quiet responder earn their way back.</h2>
+    <p class="lead reveal">Not a changed number. Old misses lose weight as time passes, so a rough patch fades, and the handler can see why someone is ranked where they are. Try it: this is the real prototype.</p>
+    <div class="grid" style="grid-template-columns:1.7fr 1fr;gap:16px;margin-top:14px" id="protoGrid">
+      <div class="frame reveal"><div class="bar"><i></i><i></i><i></i>&nbsp;05-super-speed/prototype.html</div>
+        <iframe src="05-super-speed/prototype.html" title="Score recovery prototype" loading="lazy"></iframe></div>
+      <div>
+        <div class="card reveal"><h3>Try this</h3>
+          <ol style="padding-left:20px;margin:6px 0">
+            <li>Switch <b>Release</b> between Before 4.2 and After 4.2 and watch the quiet responder drop from 1st.</li>
+            <li>Press <b>Replay Vesper's 17 pings</b>, then see the score fall to 0.00.</li>
+            <li>Turn on <b>Score recovery</b> and drag the weeks slider.</li>
+            <li>Look for the <b>Recovering ↑</b> marker on the console and the message on the phone.</li>
+          </ol></div>
+        <div class="card reveal" style="margin-top:14px"><h3>Today vs with recovery</h3><svg id="chartD" viewBox="0 0 360 220" role="img" aria-label="Recent-acceptance score by week: flat today, rising with recovery"></svg>
+          <p class="small muted">Illustrative recovery rate (35% of the gap a week). The brief does not set a rate yet.</p></div>
+        <div class="reveal" style="margin-top:12px"><div class="qlabel">Prompt I wrote (#12) that shaped it</div>
+          <blockquote>I also want you to build scenarios for me. For example, i have to wait for 60 seconds to miss. If i have to miss 10 pings to simulate, it will take 600 seconds, which is not efficient at all. Help me to build some button for quick scenario running.</blockquote>
+          <div class="btnrow"><a class="btn" href="05-super-speed/prototype.html">Open full screen</a><a class="btn alt" href="05-super-speed/replay-prototype.html">Open the 1,696-ping replay</a></div></div>
+      </div>
+    </div>
+    <p class="small muted reveal" style="margin-top:10px">The first build came from the Module 5 starter prompt, which is not saved in <code>prompts.md</code>. The prompts shown here are the ones I wrote to shape it. If the prototype does not appear above, open the file directly. It needs to sit beside the <code>05-super-speed</code> folder.</p>
+  </div>
+</section>
+
+<!-- 10. Skills -->
+<section class="slide" data-title="Keeping it from happening again">
+  <div class="wrap">
+    <p class="kicker reveal">Making sure it does not happen again</p>
+    <h2 class="reveal">Two skills that ask the awkward questions before we ship.</h2>
+    <p class="lead reveal">4.2 shipped with gaps that were easy to miss: a headline metric that hid four people, nobody owning the numbers, and a question to engineering left unanswered. The skills do not stop a release by themselves. They make those gaps show up on paper first.</p>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card reveal"><span class="tag j">SKILL 1</span><h3 style="margin-top:8px">review-checklist: tests the brief</h3>
+        <p class="small muted">Run on my own brief:</p>
+        <div class="tests">
+          <div class="test pass"><b>✓ Success measure</b>Counts responders pinged less than half as often.</div>
+          <div class="test pass"><b>✓ Scope</b>Stays on score recovery.</div>
+          <div class="test pass"><b>✓ Problem first</b>Problem comes before the fix.</div>
+          <div class="test fail"><b>✗ Owner</b>No one named as responsible.</div>
+          <div class="test fail"><b>✗ Ready for management</b>Ends in questions, not a decision.</div>
+          <div class="test fail"><b>✗ Plain language</b>Scoring values up front.</div>
+        </div></div>
+      <div class="card reveal"><span class="tag j">SKILL 2</span><h3 style="margin-top:8px">qa-testing: tests the build</h3>
+        <p>I approve acceptance criteria drawn from the brief, then the skill runs them in a real browser and writes a report. On the prototype:</p>
+        <div class="grid g2" style="gap:10px"><div class="stat"><b class="green">18 / 19</b><span>criteria passed, including every "must"</span></div><div class="stat"><b class="amber">1</b><span>caught a console that did not show Kip's responders; fixed and retested</span></div></div>
+        <p class="small muted" style="margin-top:8px">Its checks include the edges: the 0.00 floor, the 1.00 ceiling, and that a miss costs exactly what a "no" costs.</p>
+        <div class="qlabel">Prompt I wrote (#6)</div>
+        <blockquote>Make a skill called qa-testing. When I point to the product brief that outlines the requirements &amp; the staging environment where the code build against it is housed, it creates robust acceptance criteria’s, validate’s them with me, performs the tests &amp; generates a document with all findings.</blockquote></div>
+    </div>
+    <div class="card reveal" style="margin-top:14px"><h3>What each check would have forced on 4.2 <span class="tag u">MY JUDGMENT</span></h3>
+      <table>
+        <tr><th>Check</th><th>What it makes a team write down</th></tr>
+        <tr><td>Success measure</td><td>How we will know it worked, beyond the weekly average that hid four responders.</td></tr>
+        <tr><td>Owner</td><td>Who is responsible. Today nobody owns the weekly numbers.</td></tr>
+        <tr><td>Ready for management</td><td>The open question (should decliners be treated the same?) sits on the page, with the decision being asked for.</td></tr>
+        <tr><td>QA criteria</td><td>"A miss costs the same as a no" and "the score never recovers" become rules someone has to approve.</td></tr>
+      </table></div>
+  </div>
+</section>
+
+<!-- 11. Next -->
+<section class="slide" data-title="What happens next">
+  <div class="wrap">
+    <p class="kicker reveal">What happens next</p>
+    <h2 class="reveal">Open items, in the order I would tackle them.</h2>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card reveal"><h3>Before the brief goes to Helen</h3>
+        <ul><li>Name an owner for the work.</li><li>Replace the closing questions with one clear decision to approve.</li><li>Move scoring values out of the opening and say what Vesper and Kip actually experience.</li></ul></div>
+      <div class="card reveal"><h3>To close the open questions</h3>
+        <ul><li>Ask the staff engineer and Ravi for answer times, so we can tell the 60-second wait from the weight change.</li><li>Get the 14 Aug question answered: was treating decliners the same a decision?</li><li>Check what the console shows handlers today before promising a "recovering" marker.</li></ul></div>
+      <div class="card reveal"><h3>Decisions to settle</h3>
+        <ul><li>How fast should a score recover, and what stops a responder who really has stopped taking work?</li><li>Who owns the per-responder numbers: Ravi, support, or Dispatch?</li></ul></div>
+      <div class="card reveal"><h3>Keep using the skills</h3>
+        <ul><li>Run review-checklist on every brief before it is shared.</li><li>Run qa-testing on every build before it leaves staging.</li><li>Check the four briefs from the 13 Oct run against the wiki; their flags are not yet verified.</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Rook Industries is a fictional course scenario (Product School, Claude Code for PMs). Figures come from the course database (pings table, 29 Jun to 6 Sep 2026), wiki and routing code; scores are rebuilt from the code's rules and are not Rook's own records.
+</footer>
+
+<script>
+(function () {
+  // ---------- navigation ----------
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dots = document.getElementById('dots');
+  slides.forEach(function (s, i) {
+    var b = document.createElement('button'); b.setAttribute('aria-label', s.getAttribute('data-title')); b.title = s.getAttribute('data-title');
+    b.addEventListener('click', function () { s.scrollIntoView({ behavior: 'smooth' }); });
+    dots.appendChild(b);
+  });
+  function cur() { var y = window.scrollY + window.innerHeight * 0.4, k = 0; slides.forEach(function (s, i) { if (s.offsetTop <= y) k = i; }); return k; }
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    document.getElementById('progress').style.width = (h > 0 ? window.scrollY / h * 100 : 0) + '%';
+    var k = cur(); Array.prototype.forEach.call(dots.children, function (d, i) { d.classList.toggle('on', i === k); });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  document.addEventListener('keydown', function (e) {
+    var t = e.target && e.target.tagName; if (t === 'IFRAME' || t === 'INPUT' || t === 'TEXTAREA') return;
+    var k = cur(), n = null;
+    if (['ArrowRight', 'ArrowDown', 'PageDown'].indexOf(e.key) >= 0) n = Math.min(slides.length - 1, k + 1);
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].indexOf(e.key) >= 0) n = Math.max(0, k - 1);
+    if (n !== null && n !== k) { e.preventDefault(); slides[n].scrollIntoView({ behavior: 'smooth' }); }
+  });
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) en.target.classList.add('in'); }); }, { threshold: 0.15 }) : null;
+  Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el, i) { if (io) { el.style.transitionDelay = (i % 4) * 90 + 'ms'; io.observe(el); } else el.classList.add('in'); });
+
+  // ---------- chart helpers ----------
+  var NS = 'http://www.w3.org/2000/svg';
+  function E(tag, attrs, text) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+  function css(v) { return 'var(--' + v + ')'; }
+  var WEEKS = ['29 Jun', '6 Jul', '13 Jul', '20 Jul', '27 Jul', '3 Aug', '10 Aug', '17 Aug', '24 Aug', '31 Aug'];
+  function frame(svg, W, H, L, R, T, B, ymax, ticks, fmt) {
+    ticks.forEach(function (v) { var y = T + (H - T - B) * (1 - v / ymax); svg.appendChild(E('line', { x1: L, x2: W - R, y1: y, y2: y, stroke: css('line'), 'stroke-width': 1 })); svg.appendChild(E('text', { x: L - 8, y: y + 4, 'text-anchor': 'end' }, fmt ? fmt(v) : v)); });
+  }
+
+  // Chart A: missed pings (bars) + share taken (line)
+  (function () {
+    var svg = document.getElementById('chartA'), W = 760, H = 330, L = 44, R = 44, T = 20, B = 40;
+    var missed = [3, 4, 6, 5, 4, 2, 38, 28, 24, 21], share = [77, 77, 76, 75, 78, 78, 54, 66, 67, 73];
+    frame(svg, W, H, L, R, T, B, 40, [0, 10, 20, 30, 40]);
+    var step = (W - L - R) / 10, bw = step * 0.52;
+    var rx = L + step * 6 + step * 0.5 + (2 / 7 - 0.5) * step;
+    svg.appendChild(E('line', { x1: rx, x2: rx, y1: T - 4, y2: H - B, stroke: css('amber'), 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    svg.appendChild(E('text', { x: rx - 6, y: T + 6, 'text-anchor': 'end', class: 'big', style: 'fill:var(--amber)' }, '4.2 ships 12 Aug'));
+    missed.forEach(function (v, i) {
+      var h = (H - T - B) * v / 40, x = L + step * i + (step - bw) / 2, y = H - B - h;
+      var r = E('rect', { x: x, y: y, width: bw, height: h, rx: 4, fill: css('red'), opacity: i >= 6 ? 1 : .55 }); r.appendChild(E('title', {}, WEEKS[i] + ': ' + v + ' missed')); svg.appendChild(r);
+      svg.appendChild(E('text', { x: x + bw / 2, y: y - 5, 'text-anchor': 'middle', class: 'big', style: 'fill:var(--red)' }, v));
+      svg.appendChild(E('text', { x: L + step * i + step / 2, y: H - B + 18, 'text-anchor': 'middle' }, WEEKS[i]));
+    });
+    var d = '';
+    share.forEach(function (v, i) { var x = L + step * i + step / 2, y = T + (H - T - B) * (1 - v / 100); d += (i ? 'L' : 'M') + x + ',' + y; });
+    svg.appendChild(E('path', { d: d, fill: 'none', stroke: css('blue'), 'stroke-width': 3, 'stroke-linejoin': 'round' }));
+    share.forEach(function (v, i) { var x = L + step * i + step / 2, y = T + (H - T - B) * (1 - v / 100); svg.appendChild(E('circle', { cx: x, cy: y, r: 4.5, fill: css('blue') })); if (i === 5 || i === 6 || i === 9) svg.appendChild(E('text', { x: x + (i === 6 ? 34 : 0), y: y - 10 + (i === 6 ? 24 : 0), 'text-anchor': 'middle', class: 'big halo', style: 'fill:var(--blue)' }, v + '%')); });
+    [0, 50, 100].forEach(function (v) { svg.appendChild(E('text', { x: W - R + 8, y: T + (H - T - B) * (1 - v / 100) + 4 }, v + '%')); });
+  })();
+
+  // Chart B: pings per responder per week
+  (function () {
+    var svg = document.getElementById('chartB'), W = 760, H = 330, L = 40, R = 60, T = 20, B = 40, ymax = 25;
+    var quiet = [12.3, 12, 12, 12.5, 12.5, 12.3, 10.8, 4, 1.5, 0.8], others = [10.3, 10.2, 10.5, 10.5, 10, 10.3, 11.2, 11.8, 13, 13.5], gale = [13, 12, 13, 14, 13, 13, 15, 17, 20, 21];
+    frame(svg, W, H, L, R, T, B, ymax, [0, 5, 10, 15, 20, 25]);
+    var step = (W - L - R) / 9;
+    function xy(i, v) { return [L + step * i, T + (H - T - B) * (1 - v / ymax)]; }
+    var rx = L + step * 6 + step * 2 / 7;
+    svg.appendChild(E('line', { x1: rx, x2: rx, y1: T - 4, y2: H - B, stroke: css('amber'), 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    svg.appendChild(E('text', { x: rx - 6, y: T + 6, 'text-anchor': 'end', class: 'big', style: 'fill:var(--amber)' }, '4.2 ships 12 Aug'));
+    WEEKS.forEach(function (w, i) { svg.appendChild(E('text', { x: xy(i, 0)[0], y: H - B + 18, 'text-anchor': 'middle' }, w)); });
+    function line(a, color, w, label, dashed) {
+      var d = ''; a.forEach(function (v, i) { var p = xy(i, v); d += (i ? 'L' : 'M') + p[0] + ',' + p[1]; });
+      svg.appendChild(E('path', { d: d, fill: 'none', stroke: css(color), 'stroke-width': w, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      a.forEach(function (v, i) { var p = xy(i, v); var c = E('circle', { cx: p[0], cy: p[1], r: 3.5, fill: css(color) }); c.appendChild(E('title', {}, label + ', ' + WEEKS[i] + ': ' + v)); svg.appendChild(c); });
+      var p = xy(9, a[9]); svg.appendChild(E('text', { x: p[0] + 8, y: p[1] + 4, class: 'big', style: 'fill:var(--' + color + ')' }, a[9]));
+    }
+    line(others, 'grey', 2.5, 'Other 12'); line(gale, 'green', 3.5, 'The Gale'); line(quiet, 'red', 3.5, 'Quiet four');
+  })();
+
+  // Chart C: Vesper score steps
+  (function () {
+    var svg = document.getElementById('chartC'), W = 560, H = 280, L = 40, R = 14, T = 22, B = 38, xmax = 70;
+    var pts = [[0,0.58],[1.63,0.46],[1.8,0.54],[2.56,0.62],[2.81,0.7],[2.85,0.78],[3.36,0.86],[3.65,0.94],[4.31,1],[4.62,1],[4.84,0.88],[5.04,0.96],[5.59,1],[6.92,0.88],[7.37,0.96],[8.08,0.84],[8.78,0.92],[8.87,1],[9.72,1],[10.96,1],[12.57,1],[12.59,0.88],[12.63,0.96],[12.89,1],[12.9,0.88],[13.45,0.96],[13.67,1],[14.09,1],[14.77,1],[14.78,1],[15.8,1],[16.51,1],[16.83,1],[16.83,1],[17.79,0.88],[17.89,0.96],[18.73,1],[18.81,0.88],[18.84,0.96],[20.58,1],[20.67,1],[20.82,1],[21.41,0.88],[21.43,0.76],[21.89,0.84],[23.08,0.92],[23.47,1],[23.48,1],[23.71,1],[23.77,1],[24.71,1],[25.05,1],[26.66,1],[26.8,0.88],[27.05,0.96],[27.96,1],[28.36,1],[28.87,1],[29.31,1],[29.48,1],[29.62,1],[30.15,1],[31.1,0.88],[31.32,0.96],[31.56,1],[31.97,1],[32.48,1],[32.71,1],[33.8,0.88],[36.28,0.96],[36.63,1],[36.64,1],[36.75,1],[37.7,1],[37.85,1],[38.24,1],[38.4,1],[38.51,0.88],[38.74,0.96],[39.54,1],[39.71,1],[39.75,0.88],[40.83,0.96],[42.08,1],[42.56,0.88],[43.88,0.96],[45.32,0.84],[46.12,0.92],[46.72,0.8],[47.54,0.88],[47.65,0.76],[47.87,0.84],[48.45,0.72],[48.59,0.6],[48.67,0.68],[49.37,0.76],[51.78,0.64],[55.01,0.52],[55.23,0.4],[55.84,0.28],[56.9,0.16],[58.76,0.04],[64.49,0]];
+    function X(d) { return L + (W - L - R) * d / xmax; } function Y(v) { return T + (H - T - B) * (1 - v); }
+    frame(svg, W, H, L, R, T, B, 1, [0, 0.25, 0.5, 0.75, 1], function (v) { return v.toFixed(2); });
+    var rx = X(44);
+    svg.appendChild(E('rect', { x: rx, y: T, width: W - R - rx, height: H - T - B, fill: css('red-soft'), opacity: .7 }));
+    svg.appendChild(E('line', { x1: rx, x2: rx, y1: T, y2: H - B, stroke: css('amber'), 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    svg.appendChild(E('text', { x: rx - 6, y: H - B - 8, 'text-anchor': 'end', class: 'big', style: 'fill:var(--amber)' }, '4.2 ships 12 Aug'));
+    var d = 'M' + X(0) + ',' + Y(0.5), cur = 0.5;
+    pts.forEach(function (p) { d += 'L' + X(p[0]) + ',' + Y(cur) + 'L' + X(p[0]) + ',' + Y(p[1]); cur = p[1]; });
+    d += 'L' + X(69) + ',' + Y(cur);
+    svg.appendChild(E('path', { d: d, fill: 'none', stroke: css('blue'), 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+    svg.appendChild(E('circle', { cx: X(49.37), cy: Y(0.76), r: 5, fill: css('green') }));
+    svg.appendChild(E('line', { x1: X(49.37), x2: X(49.37), y1: Y(0.76) + 6, y2: Y(0.38), stroke: css('green'), 'stroke-width': 1.5 }));
+    svg.appendChild(E('text', { x: X(49.37) - 4, y: Y(0.38) + 14, 'text-anchor': 'end', class: 'big', style: 'fill:var(--green)' }, 'last taken ping, 17 Aug'));
+    svg.appendChild(E('text', { x: W - R - 4, y: T + 34, 'text-anchor': 'end', class: 'big', style: 'fill:var(--red)' }, 'falls to 0.00 by 1 Sep'));
+    [['29 Jun', 0], ['27 Jul', 28], ['24 Aug', 56]].forEach(function (a) { svg.appendChild(E('text', { x: X(a[1]), y: H - B + 18, 'text-anchor': 'middle' }, a[0])); });
+  })();
+
+  // Chart D: today vs recovery (illustrative)
+  (function () {
+    var svg = document.getElementById('chartD'), W = 360, H = 220, L = 34, R = 14, T = 16, B = 30;
+    var rec = [0.05, 0.21, 0.31, 0.38, 0.42, 0.45, 0.47], none = [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05];
+    function X(i) { return L + (W - L - R) * i / 6; } function Y(v) { return T + (H - T - B) * (1 - v); }
+    frame(svg, W, H, L, R, T, B, 1, [0, 0.5, 1], function (v) { return v.toFixed(1); });
+    svg.appendChild(E('line', { x1: L, x2: W - R, y1: Y(0.5), y2: Y(0.5), stroke: css('grey'), 'stroke-width': 1.5, 'stroke-dasharray': '4 4' }));
+    svg.appendChild(E('text', { x: L + 6, y: Y(0.5) - 5 }, 'neutral 0.50'));
+    function ln(a, c, label) { var d = ''; a.forEach(function (v, i) { d += (i ? 'L' : 'M') + X(i) + ',' + Y(v); }); svg.appendChild(E('path', { d: d, fill: 'none', stroke: css(c), 'stroke-width': 3, 'stroke-linecap': 'round' })); a.forEach(function (v, i) { svg.appendChild(E('circle', { cx: X(i), cy: Y(v), r: 3.5, fill: css(c) })); }); }
+    ln(none, 'red'); ln(rec, 'green');
+    svg.appendChild(E('text', { x: X(6) - 2, y: Y(0.05) - 8, 'text-anchor': 'end', class: 'big', style: 'fill:var(--red)' }, 'today: stays at 0.05'));
+    svg.appendChild(E('text', { x: X(0) + 34, y: Y(0.78), class: 'big', style: 'fill:var(--green)' }, 'with recovery: climbs back'));
+    for (var i = 0; i <= 6; i += 2) svg.appendChild(E('text', { x: X(i), y: H - B + 18, 'text-anchor': 'middle' }, 'wk ' + i));
+  })();
+})();
+</script>
+</body>
+</html>
