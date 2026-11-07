@@ -3,305 +3,358 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Release 4.2 final report</title>
+<title>Release 4.2: The Quiet Four</title>
 <style>
   :root {
-    --bg:#f5f6f9; --bg2:#ffffff; --ink:#18202e; --muted:#5b6578; --line:#dfe3ec;
-    --blue:#2457d6; --blue-soft:#e6edff; --red:#c8352b; --red-soft:#fdeceb;
-    --amber:#b4620a; --amber-soft:#fff2dc; --green:#1b8050; --green-soft:#e2f5ea;
-    --grey:#8a93a6; --shadow:0 8px 28px rgba(24,32,46,.08);
+    --bg:#060a14; --bg2:#0d1325; --ink:#eef2fb; --muted:#9aa7c6; --line:#27314d;
+    --blue:#3b8cff; --blue-soft:#102448; --red:#ff5a52; --red-soft:#3a1618;
+    --amber:#ffc83d; --amber-soft:#35290d; --green:#3ddc97; --green-soft:#0e3025;
+    --grey:#7f8aa8; --act:var(--blue);
+    --title:Impact,"Haettenschweiler","Arial Narrow Bold","Franklin Gothic Condensed",sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#0f131a; --bg2:#171c26; --ink:#e9edf5; --muted:#9ba5b9; --line:#2a3242;
-      --blue:#7a9eff; --blue-soft:#1d2a52; --red:#ff8179; --red-soft:#3b1d1c;
-      --amber:#f2a65a; --amber-soft:#3a2b15; --green:#5fd09a; --green-soft:#15342a;
-      --grey:#7d879b; --shadow:0 8px 28px rgba(0,0,0,.35); }
-  }
+  [data-phase="discover"] { --act:var(--blue); }
+  [data-phase="define"]   { --act:var(--amber); }
+  [data-phase="develop"]  { --act:var(--green); }
+  [data-phase="deliver"]  { --act:var(--red); }
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
-  body { margin:0; background:var(--bg); color:var(--ink);
-    font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } .reveal { transition:none !important; opacity:1 !important; transform:none !important; } }
-  #progress { position:fixed; top:0; left:0; height:4px; width:0; background:linear-gradient(90deg,var(--blue),var(--amber)); z-index:50; }
+  #progress { position:fixed; top:0; left:0; height:4px; width:0; background:linear-gradient(90deg,var(--blue),var(--amber),var(--green),var(--red)); z-index:60; }
+  /* HUD */
+  #hud { position:fixed; top:12px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:55; background:rgba(6,10,20,.82); backdrop-filter:blur(6px); border:1px solid var(--line); border-radius:999px; padding:5px 6px; }
+  #hud span { font:12px var(--title); letter-spacing:.14em; text-transform:uppercase; padding:5px 12px; border-radius:999px; color:var(--muted); }
+  #hud span.on { color:#06101f; }
+  #hud span[data-p="discover"].on { background:var(--blue); } #hud span[data-p="define"].on { background:var(--amber); }
+  #hud span[data-p="develop"].on { background:var(--green); } #hud span[data-p="deliver"].on { background:var(--red); }
+  #tools { position:fixed; top:12px; right:14px; display:flex; gap:8px; z-index:55; }
+  #tools button { font:12px var(--title); letter-spacing:.12em; text-transform:uppercase; background:rgba(6,10,20,.82); color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:7px 13px; cursor:pointer; }
+  #tools button.on { background:var(--amber); color:#06101f; border-color:var(--amber); }
+  @media (max-width:760px) { #hud span { padding:4px 7px; font-size:10px; } #tools { top:56px; } }
   #dots { position:fixed; right:14px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:9px; z-index:40; }
   #dots button { width:11px; height:11px; border-radius:50%; border:2px solid var(--grey); background:transparent; padding:0; cursor:pointer; }
-  #dots button.on { background:var(--blue); border-color:var(--blue); transform:scale(1.25); }
+  #dots button.on { background:var(--amber); border-color:var(--amber); transform:scale(1.25); }
   @media (max-width:760px) { #dots { display:none; } }
-  .slide { min-height:100vh; padding:64px 8vw 56px; display:flex; flex-direction:column; justify-content:center; position:relative; }
-  .slide:nth-child(even) { background:var(--bg2); }
-  .wrap { max-width:1080px; width:100%; margin:0 auto; }
-  .kicker { font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--blue); margin:0 0 10px; }
-  h1 { font-size:clamp(34px,5.6vw,60px); line-height:1.08; margin:0 0 16px; letter-spacing:-.02em; }
-  h2 { font-size:clamp(26px,3.6vw,38px); line-height:1.15; margin:0 0 14px; letter-spacing:-.01em; }
+  /* slides */
+  .slide { min-height:100vh; padding:92px 8vw 64px; display:flex; flex-direction:column; justify-content:center; position:relative; overflow:hidden;
+    background:radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb,var(--act) 18%,transparent), transparent 60%), var(--bg); }
+  .slide:nth-child(even) { background:radial-gradient(1200px 500px at 10% 110%, color-mix(in srgb,var(--act) 16%,transparent), transparent 60%), var(--bg2); }
+  .slide:before { content:""; position:absolute; inset:0; background-image:radial-gradient(rgba(255,255,255,.055) 1px, transparent 1.6px); background-size:15px 15px; pointer-events:none; }
+  .slide:after { content:""; position:absolute; left:0; right:0; bottom:0; height:6px; background:repeating-linear-gradient(135deg,var(--act) 0 14px,transparent 14px 28px); opacity:.55; }
+  .wrap { max-width:1080px; width:100%; margin:0 auto; position:relative; z-index:1; }
+  .chap { font:14px var(--title); letter-spacing:.3em; text-transform:uppercase; color:var(--act); margin:0 0 6px; display:flex; align-items:center; gap:12px; }
+  .chap:after { content:""; height:3px; width:60px; background:var(--act); transform:skewX(-30deg); }
+  h1 { font:clamp(44px,8vw,104px)/0.95 var(--title); text-transform:uppercase; letter-spacing:.015em; margin:0 0 14px; }
+  h2 { font:clamp(30px,4.6vw,52px)/1.02 var(--title); text-transform:uppercase; letter-spacing:.02em; margin:0 0 14px; }
+  h2 em { font-style:normal; color:var(--act); }
   h3 { font-size:18px; margin:0 0 6px; }
-  p { margin:0 0 12px; } .lead { font-size:clamp(18px,2vw,22px); color:var(--muted); max-width:760px; }
+  p { margin:0 0 12px; } .lead { font-size:clamp(17px,1.9vw,21px); color:var(--muted); max-width:780px; }
   .muted { color:var(--muted); } .small { font-size:14px; }
+  .narr { max-width:820px; margin:0 0 18px; padding:10px 16px; border-left:5px solid var(--act); background:linear-gradient(90deg,color-mix(in srgb,var(--act) 14%,transparent),transparent); font-size:clamp(17px,1.9vw,21px); font-style:italic; color:var(--ink); }
+  .narr b { display:block; text-transform:uppercase; font:12px var(--title); letter-spacing:.3em; font-style:normal; color:var(--act); margin-bottom:2px; }
   .reveal { opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
   .reveal.in { opacity:1; transform:none; }
-  .title { background:linear-gradient(135deg,#16224a 0%,#2457d6 55%,#b4620a 140%); color:#fff; }
-  .title .kicker { color:#ffd9a8; } .title .lead { color:#dbe4ff; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
-  .chip { font-size:13px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); }
   .grid { display:grid; gap:16px; } .g2 { grid-template-columns:1fr 1fr; } .g3 { grid-template-columns:repeat(3,1fr); } .g4 { grid-template-columns:repeat(4,1fr); }
   @media (max-width:900px) { .g2,.g3,.g4 { grid-template-columns:1fr; } }
-  .card { background:var(--bg2); border:1px solid var(--line); border-radius:16px; padding:18px 20px; box-shadow:var(--shadow); }
-  .slide:nth-child(even) .card { background:var(--bg); box-shadow:none; }
-  .stat { text-align:left; } .stat b { display:block; font-size:clamp(34px,4.4vw,52px); line-height:1; letter-spacing:-.02em; }
+  .card { background:var(--bg2); border:2px solid var(--line); border-radius:6px; padding:18px 20px; box-shadow:6px 6px 0 color-mix(in srgb,var(--act) 38%,transparent); }
+  .slide:nth-child(even) .card { background:var(--bg); }
+  .stat b { display:block; font:clamp(40px,5vw,64px)/1 var(--title); letter-spacing:.01em; }
   .stat span { color:var(--muted); font-size:15px; display:block; margin-top:6px; }
   .red { color:var(--red); } .green { color:var(--green); } .amber { color:var(--amber); } .blue { color:var(--blue); }
-  .tag { display:inline-block; font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px; margin-right:6px; }
-  .tag.k { background:var(--green-soft); color:var(--green); } .tag.u { background:var(--amber-soft); color:var(--amber); }
-  .tag.j { background:var(--blue-soft); color:var(--blue); }
-  .timeline { display:flex; gap:0; margin-top:26px; position:relative; }
+  .tag { display:inline-block; font:12px var(--title); letter-spacing:.14em; padding:2px 10px; border-radius:3px; margin-right:6px; text-transform:uppercase; }
+  .tag.k { background:var(--green-soft); color:var(--green); } .tag.u { background:var(--amber-soft); color:var(--amber); } .tag.j { background:var(--blue-soft); color:var(--blue); }
+  .timeline { display:flex; margin-top:22px; position:relative; }
   .timeline:before { content:""; position:absolute; left:0; right:0; top:11px; height:3px; background:var(--line); }
   .tl { flex:1; padding-top:30px; position:relative; padding-right:10px; font-size:15px; }
-  .tl:before { content:""; position:absolute; top:4px; left:0; width:16px; height:16px; border-radius:50%; background:var(--blue); border:3px solid var(--bg2); }
-  .tl.hot:before { background:var(--red); } .tl b { display:block; }
-  @media (max-width:760px) { .timeline { flex-direction:column; } .timeline:before { display:none; } .tl { padding:0 0 14px 28px; } .tl:before { top:4px; } }
+  .tl:before { content:""; position:absolute; top:4px; left:0; width:16px; height:16px; transform:rotate(45deg); background:var(--blue); border:3px solid var(--bg); }
+  .tl.hot:before { background:var(--red); } .tl b { display:block; font:16px var(--title); letter-spacing:.06em; }
+  @media (max-width:760px) { .timeline { flex-direction:column; } .timeline:before { display:none; } .tl { padding:0 0 14px 28px; } }
   svg { width:100%; height:auto; display:block; }
   svg text { fill:var(--muted); font-size:12px; font-family:inherit; }
   svg .big { font-size:13px; font-weight:700; }
   svg .halo { paint-order:stroke; stroke:var(--bg2); stroke-width:4px; stroke-linejoin:round; }
-  .slide:nth-child(even) svg .halo { stroke:var(--bg2); }
-  .flow { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin:18px 0 8px; }
+  .flow { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin:14px 0 8px; }
   @media (max-width:900px) { .flow { grid-template-columns:1fr 1fr; } }
-  .step { background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:12px; font-size:14.5px; position:relative; }
-  .step em { font-style:normal; font-weight:800; font-size:12px; color:var(--blue); display:block; margin-bottom:4px; }
+  .step { background:var(--bg); border:2px solid var(--line); border-radius:6px; padding:12px; font-size:14.5px; }
+  .step em { font:13px var(--title); font-style:normal; letter-spacing:.1em; color:var(--blue); display:block; margin-bottom:4px; }
   .step.bad { border-color:var(--red); background:var(--red-soft); } .step.bad em { color:var(--red); }
-  .loopback { border:2px dashed var(--red); border-top:none; border-radius:0 0 18px 18px; text-align:center; color:var(--red); font-weight:700; font-size:14px; padding:6px; margin:0 6% 8px; }
+  .loopback { border:2px dashed var(--red); border-top:none; border-radius:0 0 18px 18px; text-align:center; color:var(--red); font:14px var(--title); letter-spacing:.1em; padding:6px; margin:0 6% 8px; text-transform:uppercase; }
   .mod { display:flex; flex-direction:column; gap:10px; }
   .modhead { display:flex; align-items:center; gap:10px; }
-  .num { width:34px; height:34px; border-radius:50%; background:var(--blue); color:#fff; display:grid; place-items:center; font-weight:800; flex:none; }
-  .mod h3 { margin:0; } .mod .name { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
-  blockquote { margin:0; padding:10px 14px; border-left:4px solid var(--amber); background:var(--amber-soft); border-radius:0 10px 10px 0; font-size:14.5px; font-style:italic; }
-  .qlabel { font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--amber); margin-bottom:3px; }
-  .artifact { font-size:13px; color:var(--muted); } .artifact code { background:var(--blue-soft); color:var(--blue); padding:1px 7px; border-radius:6px; font-size:12.5px; }
-  .frame { border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--bg2); box-shadow:var(--shadow); }
-  .frame .bar { display:flex; gap:7px; padding:9px 12px; border-bottom:1px solid var(--line); align-items:center; font-size:12px; color:var(--muted); }
+  .num { width:40px; height:40px; background:var(--act); color:#06101f; display:grid; place-items:center; font:22px var(--title); flex:none; clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+  .mod h3 { margin:0; } .mod .name { font:12px var(--title); color:var(--muted); letter-spacing:.14em; text-transform:uppercase; }
+  blockquote { margin:0; padding:10px 14px; border-left:4px solid var(--amber); background:var(--amber-soft); border-radius:0 6px 6px 0; font-size:14.5px; font-style:italic; }
+  .qlabel { font:12px var(--title); letter-spacing:.18em; text-transform:uppercase; color:var(--amber); margin-bottom:3px; }
+  .artifact { font-size:13px; color:var(--muted); } .artifact code { background:var(--blue-soft); color:var(--blue); padding:1px 7px; border-radius:4px; font-size:12.5px; }
+  .frame { border:2px solid var(--line); border-radius:6px; overflow:hidden; background:var(--bg2); box-shadow:6px 6px 0 color-mix(in srgb,var(--act) 38%,transparent); }
+  .frame .bar { display:flex; gap:7px; padding:9px 12px; border-bottom:2px solid var(--line); align-items:center; font-size:12px; color:var(--muted); }
   .frame .bar i { width:10px; height:10px; border-radius:50%; background:var(--line); display:inline-block; }
   iframe { width:100%; height:640px; border:0; background:#fff; }
   .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted); margin-top:6px; }
   .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
   .tests { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
   @media (max-width:900px) { .tests { grid-template-columns:1fr 1fr; } }
-  .test { border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:14px; background:var(--bg); }
+  .test { border:2px solid var(--line); border-radius:6px; padding:10px 12px; font-size:14px; background:var(--bg); }
   .test b { display:block; } .test.fail { border-color:var(--red); background:var(--red-soft); } .test.pass { border-color:var(--green); background:var(--green-soft); }
   .btnrow { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
-  a.btn { display:inline-block; padding:9px 16px; border-radius:10px; background:var(--blue); color:#fff; text-decoration:none; font-weight:600; font-size:15px; }
-  a.btn.alt { background:transparent; color:var(--blue); border:1px solid var(--blue); }
+  a.btn { display:inline-block; padding:9px 16px; border-radius:4px; background:var(--amber); color:#06101f; text-decoration:none; font:15px var(--title); letter-spacing:.08em; text-transform:uppercase; }
+  a.btn.alt { background:transparent; color:var(--amber); border:2px solid var(--amber); }
+  .pick { border:2px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:5px 12px; font:inherit; font-size:13px; cursor:pointer; margin-right:6px; }
+  .pick.on { background:var(--act); color:#06101f; border-color:var(--act); font-weight:700; }
   ul { margin:6px 0 12px; padding-left:20px; } li { margin-bottom:5px; }
-  .hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); font-size:13px; opacity:.8; }
-  table { border-collapse:collapse; width:100%; font-size:14.5px; } td,th { text-align:left; padding:8px 10px; border-top:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em; border-top:0; }
-  footer { padding:24px 8vw 40px; color:var(--muted); font-size:13px; text-align:center; }
+  table { border-collapse:collapse; width:100%; font-size:14.5px; } td,th { text-align:left; padding:8px 10px; border-top:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font:12px var(--title); letter-spacing:.14em; text-transform:uppercase; border-top:0; }
+  tr.win td { background:color-mix(in srgb,var(--green) 14%,transparent); }
+  /* title + diamond */
+  .poster { background:radial-gradient(900px 600px at 70% 30%, rgba(59,140,255,.35), transparent 60%), radial-gradient(700px 500px at 10% 100%, rgba(255,200,61,.22), transparent 60%), #040711 !important; }
+  .poster h1 span { color:var(--amber); display:block; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+  .chip { font:13px var(--title); letter-spacing:.12em; text-transform:uppercase; padding:5px 12px; border:2px solid var(--amber); color:var(--amber); }
+  .dd text { fill:#06101f; font:15px var(--title); letter-spacing:.08em; text-anchor:middle; }
+  .dd .sub { font:12px -apple-system,sans-serif; letter-spacing:0; }
+  .stack { display:flex; height:46px; border-radius:4px; overflow:hidden; font:18px var(--title); letter-spacing:.05em; margin:10px 0 6px; }
+  .stack div { display:flex; align-items:center; padding:0 14px; color:#06101f; white-space:nowrap; }
+  .credits { text-align:center; } .credits .wrap { max-width:760px; }
+  .hint { position:absolute; bottom:22px; left:50%; transform:translateX(-50%); font-size:13px; opacity:.8; z-index:2; }
 </style>
 </head>
 <body>
 <div id="progress"></div>
+<div id="hud" aria-label="Double Diamond phase"><span data-p="discover">Discover</span><span data-p="define">Define</span><span data-p="develop">Develop</span><span data-p="deliver">Deliver</span></div>
+<div id="tools"><button id="auto" title="Advance automatically">▶ Auto-play</button><button id="speak" title="Read the narrator lines aloud">🔊 Narrate</button></div>
 <nav id="dots" aria-label="Slides"></nav>
 
-<!-- 1. Title -->
-<section class="slide title" data-title="Title">
+<!-- 0 Poster -->
+<section class="slide poster" data-title="Title" data-phase="">
   <div class="wrap">
-    <p class="kicker reveal">Rook Dispatch · final report</p>
-    <h1 class="reveal">Release 4.2: what happened, what we found, and how we stop it happening again</h1>
-    <p class="lead reveal">Six modules of work, one story: four responders quietly stopped getting pings, and a weekly average hid it.</p>
-    <div class="chips reveal">
-      <span class="chip">1 Origin Story</span><span class="chip">2 Super Hearing</span><span class="chip">3 Rewind</span>
-      <span class="chip">4 X-Ray Vision</span><span class="chip">5 Super Speed</span><span class="chip">6 Sidekicks</span>
-    </div>
-    <p class="small reveal" style="margin-top:28px;opacity:.85">By the Dispatch PM · 7 Nov 2026 · Rook Industries is a fictional course scenario, and every figure here comes from the course database, wiki and code.</p>
+    <p class="chap reveal">A Rook Dispatch story</p>
+    <h1 class="reveal">Release 4.2<span>The Quiet Four</span></h1>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">It shipped clean. No rollback, no overnight pages. And yet, four responders had stopped hearing from us, and nothing on the dashboard said so.</span></p>
+    <div class="chips reveal"><span class="chip">Framework: Double Diamond</span><span class="chip">6 modules</span><span class="chip">1,696 pings analysed</span></div>
+    <p class="small muted reveal" style="margin-top:26px">By the Dispatch PM · 7 Nov 2026 · Rook Industries is a fictional course scenario. Visual style inspired by superhero film title cards; not affiliated with any studio.</p>
   </div>
-  <div class="hint">Scroll, or press → / ↓</div>
+  <div class="hint">Scroll, press → / ↓, or hit Auto-play</div>
 </section>
 
-<!-- 2. What happened -->
-<section class="slide" data-title="What happened">
+<!-- 1 Framework -->
+<section class="slide" data-title="The framework" data-phase="">
   <div class="wrap">
-    <p class="kicker reveal">What happened</p>
-    <h2 class="reveal">Release 4.2 shipped clean. Then the phones went quiet.</h2>
-    <p class="lead reveal">On 12 August, Dispatch changed two things at once: it counted distance for more when choosing who to ping, and it gave each responder 60 seconds to answer instead of 90. No rollback, no alarms. A week later the complaints began.</p>
-    <div class="grid g4" style="margin-top:20px">
-      <div class="card stat reveal"><b class="red" data-count="38">38</b><span>pings missed in the week of 10 Aug, against 2 to 6 a week before</span></div>
-      <div class="card stat reveal"><b class="amber" data-count="54">54%</b><span>of pings taken that week, down from 75 to 78%</span></div>
-      <div class="card stat reveal"><b class="red">83</b><span>open support tickets, every one filed since 12 Aug</span></div>
-      <div class="card stat reveal"><b class="blue">3×</b><span>normal callout ticket volume reported by support from 18 Aug</span></div>
+    <p class="chap reveal">The spine of the story</p>
+    <h2 class="reveal">Four acts. One <em>Double Diamond</em>.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">Every good product story needs a spine. Ours is the Double Diamond: open wide to discover, narrow to define, open wide again to develop, narrow to deliver.</span></p>
+    <div class="card reveal"><svg class="dd" viewBox="0 0 660 230" role="img" aria-label="Double Diamond: Discover and Define, then Develop and Deliver">
+      <polygon points="20,115 170,25 170,205" fill="#3b8cff"/><polygon points="170,25 320,115 170,205" fill="#ffc83d"/>
+      <polygon points="340,115 490,25 490,205" fill="#3ddc97"/><polygon points="490,25 640,115 490,205" fill="#ff5a52"/>
+      <text x="105" y="112">DISCOVER</text><text class="sub" x="105" y="132">modules 1 to 3</text>
+      <text x="235" y="112">DEFINE</text><text class="sub" x="235" y="132">module 4</text>
+      <text x="425" y="112">DEVELOP</text><text class="sub" x="425" y="132">module 5</text>
+      <text x="555" y="112">DELIVER</text><text class="sub" x="555" y="132">module 6</text>
+      <text x="170" y="222" style="fill:var(--muted);font:12px sans-serif">the problem</text><text x="490" y="222" style="fill:var(--muted);font:12px sans-serif">the solution</text></svg></div>
+    <div class="grid g4" style="margin-top:14px">
+      <div class="card reveal" data-phase="discover"><h3 class="blue">Discover</h3><p class="small">Origin Story, Super Hearing, Rewind. Read everything, listen to customers, check the data.</p></div>
+      <div class="card reveal" data-phase="define"><h3 class="amber">Define</h3><p class="small">X-Ray Vision. Find the mechanism and write one honest problem statement.</p></div>
+      <div class="card reveal" data-phase="develop"><h3 class="green">Develop</h3><p class="small">Super Speed. Weigh options, then write the brief and build a prototype.</p></div>
+      <div class="card reveal" data-phase="deliver"><h3 class="red">Deliver</h3><p class="small">Sidekicks. Skills that check briefs and builds, and measures that would have caught this.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 Act I ch1 -->
+<section class="slide" data-title="Ch. 1 · Origin Story" data-phase="discover">
+  <div class="wrap">
+    <p class="chap reveal">Act I · Discover · Chapter 1 · Origin Story</p>
+    <h2 class="reveal">A clean release, then the <em>phones went quiet</em>.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">On 12 August, Release 4.2 shipped clean. Six days later, support tickets were running at three times normal, and nobody could say why.</span></p>
+    <div class="grid g4" style="margin-top:6px">
+      <div class="card stat reveal"><b class="red">38</b><span>pings missed in the week of 10 Aug, against 2 to 6 a week before</span></div>
+      <div class="card stat reveal"><b class="amber">54%</b><span>of pings taken that week, down from 75 to 78%</span></div>
+      <div class="card stat reveal"><b class="red">83</b><span>open tickets, every one filed since 12 Aug</span></div>
+      <div class="card stat reveal"><b class="blue">3×</b><span>normal callout ticket volume from 18 Aug</span></div>
     </div>
     <div class="timeline reveal">
-      <div class="tl"><b>12 Aug</b>4.2 ships. Wait cut 90 → 60 s, distance weighted up.</div>
+      <div class="tl"><b>12 Aug</b>4.2 ships. Wait 90 → 60 s, distance weighted up.</div>
       <div class="tl"><b>14 Aug</b>Engineering manager asks if decliners were meant to be treated the same. No answer recorded.</div>
       <div class="tl hot"><b>18 Aug</b>Support: tickets ~3× normal. "My phone never goes off."</div>
       <div class="tl hot"><b>26 Aug</b>Still elevated: two thirds "never goes off", one third "gone before I could answer".</div>
-      <div class="tl"><b>28 Aug</b>New PM gets a week to look before the team regroups.</div>
+      <div class="tl"><b>28 Aug</b>New PM gets a week to look.</div>
+    </div>
+    <div class="card mod reveal" style="margin-top:18px">
+      <div class="modhead"><div class="num">1</div><div><div class="name">Module 1 · Origin Story</div><h3>The documents disagree</h3></div></div>
+      <p style="margin:0">Availability Confidence was promised for 4.2 but is missing from the release notes. Nobody owns the weekly numbers. The 14 Aug question about decliners is still unanswered.</p>
+      <div><div class="qlabel">The prompt I wrote (#1)</div><blockquote>What's contradictory or missing, not just in the company documents, but across Rook's wiki, its database, and the files in my repo?</blockquote></div>
+      <div class="artifact">Saved in <code>CLAUDE.md</code> → open items</div>
     </div>
   </div>
 </section>
 
-<!-- 3. Average hid it -->
-<section class="slide" data-title="The average hid it">
+<!-- 3 Act I ch2 -->
+<section class="slide" data-title="Ch. 2 · Super Hearing" data-phase="discover">
   <div class="wrap">
-    <p class="kicker reveal">The headline number</p>
-    <h2 class="reveal">The weekly average recovered. The problem did not.</h2>
-    <p class="lead reveal">Acceptance fell to 54% in the week of 4.2, then climbed back to 73%. Read as a single number, that looks like a dip. Look at the misses and it is a step change that never went away.</p>
+    <p class="chap reveal">Act I · Discover · Chapter 2 · Super Hearing</p>
+    <h2 class="reveal">Two piles of feedback. <em>Two different stories.</em></h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">So I listened. Four handler interviews on one side, 147 support tickets on the other. They did not agree.</span></p>
+    <div class="grid g2" style="margin-top:6px">
+      <div class="card reveal"><h3>147 tickets, compared with what handlers said</h3>
+        <div class="stack"><div style="width:47%;background:var(--blue)">69 match</div><div style="width:53%;background:var(--red)">78 match nothing they said</div></div>
+        <ul>
+          <li>Interviews were loud on console items that have <b>no tickets</b>: the live-callout alert, coverage-card confusion, too much clicking.</li>
+          <li>The two biggest ticket groups: <b>30</b> "phone quiet / far fewer pings" and <b>15</b> "gone before they could answer". All open.</li>
+          <li>Handlers were only mild on the quiet phone. No responders were interviewed.</li>
+        </ul></div>
+      <div class="card mod reveal">
+        <div class="modhead"><div class="num">2</div><div><div class="name">Module 2 · Super Hearing</div><h3>Where the two piles disagree</h3></div></div>
+        <div><div class="qlabel">The prompt I wrote (#15)</div><blockquote>You've now read both piles. Where do they disagree? What's loud in the interviews but rare in the tickets, and what's all over the tickets that nobody brought up in the interviews?</blockquote></div>
+        <div class="artifact">Saved in <code>02-super-hearing/my-work/analysis.md</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 Act I ch3 -->
+<section class="slide" data-title="Ch. 3 · Rewind" data-phase="discover">
+  <div class="wrap">
+    <p class="chap reveal">Act I · Discover · Chapter 3 · Rewind</p>
+    <h2 class="reveal">The average <em>recovered</em>. The problem did not.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">Then the data. Missed pings jumped from a handful a week to 38. Acceptance dipped to 54%, then climbed back, and that recovery is what almost hid it.</span></p>
     <div class="card reveal"><svg id="chartA" viewBox="0 0 760 330" role="img" aria-label="Missed pings per week as bars and share of pings taken as a line, with the 4.2 release marked"></svg>
       <div class="legend"><span><i style="background:var(--red)"></i>Missed pings per week</span><span><i style="background:var(--blue)"></i>Share of pings taken (%)</span><span><i style="background:var(--amber)"></i>4.2 ships, 12 Aug</span></div></div>
+    <div class="card mod reveal" style="margin-top:16px">
+      <div class="modhead"><div class="num">3</div><div><div class="name">Module 3 · Rewind</div><h3>The step change in the pings</h3></div></div>
+      <p style="margin:0">The first ping was missed on <b>21.4%</b> of callouts after 12 Aug, against 2.7% before.</p>
+      <div><div class="qlabel">The prompt I wrote (#2)</div><blockquote>What exactly changes after 12-August in terms of pings check from database?</blockquote></div>
+      <div class="artifact">Charted in <code>03-rewind/ping-charts.html</code></div>
+    </div>
   </div>
 </section>
 
-<!-- 4. Four responders -->
-<section class="slide" data-title="Four went quiet">
+<!-- 5 Act I insight -->
+<section class="slide" data-title="Who it hit" data-phase="discover">
   <div class="wrap">
-    <p class="kicker reveal">Who it hit</p>
-    <h2 class="reveal">Four responders went from about 12 pings a week to one.</h2>
-    <p class="lead reveal">Farlight, Meteor Mite, The Undertow and Vesper. The other twelve responders were pinged more than before. The Gale, in the same area and under the same handler as Meteor Mite, went from 13 to 21.</p>
+    <p class="chap reveal">Act I · Discover · The insight</p>
+    <h2 class="reveal">Four responders went from about 12 pings a week to <em>one</em>.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">Look closer and the average falls apart. Farlight, Meteor Mite, The Undertow and Vesper had gone nearly silent, while everyone else got busier.</span></p>
     <div class="card reveal"><svg id="chartB" viewBox="0 0 760 330" role="img" aria-label="Average pings per responder per week for the four quiet responders, the other twelve, and The Gale"></svg>
       <div class="legend"><span><i style="background:var(--red)"></i>The four who went quiet (average each)</span><span><i style="background:var(--grey)"></i>The other 12 (average each)</span><span><i style="background:var(--green)"></i>The Gale</span></div></div>
+    <p class="small muted reveal" style="margin-top:10px">The Gale shares Meteor Mite's area and handler (Kip). On Eastgate callouts, Meteor Mite was pinged on 62 of 118 before 12 Aug and 9 of 57 since; The Gale on 76 of 118, then 54 of 57.</p>
   </div>
 </section>
 
-<!-- 5. Why -->
-<section class="slide" data-title="Why they stay quiet">
+<!-- 6 Act II ch4 -->
+<section class="slide" data-title="Ch. 4 · X-Ray Vision" data-phase="define">
   <div class="wrap">
-    <p class="kicker reveal">Why they stay quiet</p>
-    <h2 class="reveal">A miss counts the same as a "no", and nothing ever fades.</h2>
-    <p class="lead reveal">Dispatch scores each responder on how often they take pings. Every missed ping costs 0.12. Only a taken ping adds back (0.08). Once the score is low the responder is rarely asked, so there is little chance to earn it back.</p>
+    <p class="chap reveal">Act II · Define · Chapter 4 · X-Ray Vision</p>
+    <h2 class="reveal">A miss counts the same as a "no". <em>Nothing ever fades.</em></h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">To see why they stayed quiet, we read the code. Every missed ping costs 0.12, the same as a refusal. Only a taken ping adds back, and nothing wears off.</span></p>
     <div class="flow reveal">
       <div class="step"><em>1</em>A ping goes out to a phone.</div>
       <div class="step"><em>2</em>No answer in 60 seconds (it was 90). Counted as <b>missed</b>.</div>
       <div class="step bad"><em>3</em>Score drops 0.12, the same as saying no.</div>
       <div class="step bad"><em>4</em>Ranked lower, and distance now counts for more than history.</div>
       <div class="step bad"><em>5</em>Fewer pings reach them.</div>
-      <div class="step bad"><em>6</em>Fewer chances to earn +0.08 back. About 7 takes in a row are needed from zero.</div>
+      <div class="step bad"><em>6</em>Fewer chances to earn +0.08 back. About 7 takes in a row from zero.</div>
     </div>
     <div class="loopback reveal">↺ and round again</div>
     <div class="grid g2" style="margin-top:14px">
-      <div class="card reveal"><h3>Vesper's score, replayed from the pings</h3><svg id="chartC" viewBox="0 0 560 280" role="img" aria-label="Vesper's recent-acceptance score over time, falling to zero after 12 August"></svg>
-        <p class="small muted">Rebuilt with the code's rules from the pings table, starting at 0.50 on 29 Jun. Last taken ping: 17 Aug.</p></div>
-      <div class="card reveal"><h3>After 12 Aug, Vesper had 17 pings</h3>
-        <p><b class="green">5</b> taken · <b class="amber">3</b> turned down · <b class="red">9</b> missed.</p>
-        <p>The four quiet responders missed <b>33 of 56</b> pings (59%) after 12 Aug. The other twelve missed <b>77 of 555</b> (14%). Before 4.2, both groups missed about 2 to 3%.</p>
-        <p class="small muted">Turned-down pings did not rise (21.1% → 18.0%). Missed pings did.</p></div>
+      <div class="card reveal"><h3 id="scTitle">Meteor Mite's score, replayed from the pings</h3>
+        <div class="btnrow" style="margin:0 0 6px"><button class="pick on" id="pickMM">Meteor Mite (Kip)</button><button class="pick" id="pickV">Vesper (Aunt Dot)</button></div>
+        <svg id="chartC" viewBox="0 0 560 280" role="img" aria-label="Recent-acceptance score over time, falling to zero after 12 August"></svg>
+        <p class="small muted" id="scNote">Rebuilt with the code's rules from the pings table, starting at 0.50 on 29 Jun.</p></div>
+      <div>
+        <div class="card reveal"><h3 id="rcTitle">After 12 Aug, Meteor Mite had 14 pings</h3>
+          <p id="rcCounts"><b class="green">3</b> taken · <b class="amber">3</b> turned down · <b class="red">8</b> missed.</p>
+          <p class="small">The four quiet responders missed <b>33 of 56</b> pings (59%) after 12 Aug. The other twelve missed <b>77 of 555</b> (14%). Before 4.2, both groups missed about 2 to 3%. Turned-down pings did not rise (21.1% → 18.0%).</p></div>
+        <div class="card mod reveal" style="margin-top:14px">
+          <div class="modhead"><div class="num">4</div><div><div class="name">Module 4 · X-Ray Vision</div><h3>The rule behind the silence</h3></div></div>
+          <div><div class="qlabel">The prompt I wrote (#5)</div><blockquote>as per generated code flow, it shows missed also reduce the score by same number of someone declining.</blockquote></div>
+          <div class="artifact">Diagrammed in <code>04-x-ray-vision/recovery-flow.html</code></div></div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- 6. Known / Unknown -->
-<section class="slide" data-title="Known and not known">
+<!-- 7 Act II define -->
+<section class="slide" data-title="The problem statement" data-phase="define">
   <div class="wrap">
-    <p class="kicker reveal">Being straight about it</p>
-    <h2 class="reveal">What the evidence shows, and what it does not.</h2>
-    <div class="grid g2" style="margin-top:14px">
-      <div class="card reveal"><span class="tag k">KNOWN</span><h3 style="margin-top:8px">Shown in the data and the code</h3>
+    <p class="chap reveal">Act II · Define · The problem statement</p>
+    <h2 class="reveal">How might we let a quiet responder <em>earn their way back</em>?</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">Define means choosing one problem and being honest about what we still don't know. Here is the problem, and here is where the evidence stops.</span></p>
+    <p class="lead reveal">The constraint: someone who has genuinely stopped taking work should still stay low until they take work again.</p>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card reveal"><span class="tag k">Known</span><h3 style="margin-top:8px">Shown in the data and the code</h3>
         <ul>
           <li>Missed pings jumped on 12 Aug and stayed high.</li>
-          <li>A miss and a "no" cost the same score, and the score never decays.</li>
-          <li>Four responders' scores fell to about zero and their pings with them.</li>
+          <li>A miss and a "no" cost the same, and the score never decays.</li>
+          <li>Four responders' scores fell to about zero, and their pings with them.</li>
           <li>The ping wait did shrink: about 92 s between a miss and the next ping before, about 62 s after.</li>
-          <li>Support tickets follow the pattern, and the largest unmatched group is the quiet phone.</li>
         </ul></div>
-      <div class="card reveal"><span class="tag u">NOT PROVEN</span><h3 style="margin-top:8px">Still open</h3>
+      <div class="card reveal"><span class="tag u">Not proven</span><h3 style="margin-top:8px">Still open</h3>
         <ul>
           <li><b>Why the first misses happened.</b> Shorter wait or changed weights? The data has no answer times.</li>
-          <li>The idea that people who answered in 60 to 90 seconds now miss fits the code but is untested.</li>
+          <li>People who answered in 60 to 90 seconds now missing fits the code but is untested.</li>
           <li>"It's seasonal": no earlier-year data to check.</li>
           <li>Whether treating decliners the same was a decision. The 14 Aug question has no recorded answer.</li>
-          <li>What the console shows handlers like Kip today.</li>
         </ul></div>
     </div>
   </div>
 </section>
 
-<!-- 7. Evidence 1-3 -->
-<section class="slide" data-title="Evidence, modules 1 to 3">
+<!-- 8 Act III ch5 -->
+<section class="slide" data-title="Ch. 5 · Super Speed" data-phase="develop">
   <div class="wrap">
-    <p class="kicker reveal">The evidence trail · modules 1 to 3</p>
-    <h2 class="reveal">Each finding came from a question I asked.</h2>
-    <div class="grid g3" style="margin-top:14px">
-      <div class="card mod reveal">
-        <div class="modhead"><div class="num">1</div><div><div class="name">Origin Story</div><h3>Documents disagree</h3></div></div>
-        <p>Availability Confidence was promised for 4.2 but is missing from the release notes. Nobody owns the weekly numbers. The 14 Aug question about decliners is still unanswered.</p>
-        <div><div class="qlabel">The prompt I wrote (#1)</div><blockquote>What's contradictory or missing, not just in the company documents, but across Rook's wiki, its database, and the files in my repo?</blockquote></div>
-        <div class="artifact">Saved in <code>CLAUDE.md</code> → open items</div>
-      </div>
-      <div class="card mod reveal">
-        <div class="modhead"><div class="num">2</div><div><div class="name">Super Hearing</div><h3>Two piles that don't agree</h3></div></div>
-        <p>Of 147 tickets, 69 match something handlers said in interviews and <b>78 match nothing they said</b>. The biggest unmatched groups: 30 "phone quiet" and 15 "gone before they could answer", all open.</p>
-        <div><div class="qlabel">The prompt I wrote (#15)</div><blockquote>You've now read both piles. Where do they disagree? What's loud in the interviews but rare in the tickets, and what's all over the tickets that nobody brought up in the interviews?</blockquote></div>
-        <div class="artifact">Saved in <code>02-super-hearing/my-work/analysis.md</code></div>
-      </div>
-      <div class="card mod reveal">
-        <div class="modhead"><div class="num">3</div><div><div class="name">Rewind</div><h3>The step change in the pings</h3></div></div>
-        <p>Missed pings went from 2 to 6 a week to 38 in the week of 4.2. The first ping was missed on <b>21.4%</b> of callouts after 12 Aug, against 2.7% before.</p>
-        <div><div class="qlabel">The prompt I wrote (#2)</div><blockquote>What exactly changes after 12-August in terms of pings check from database?</blockquote></div>
-        <div class="artifact">Charted in <code>03-rewind/ping-charts.html</code></div>
-      </div>
+    <p class="chap reveal">Act III · Develop · Chapter 5 · Super Speed</p>
+    <h2 class="reveal">The Director asked for <em>something real</em>.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">Helen did not want a number quietly changed. She wanted to see what we would build, from the point of view of the person it happens to. So we weighed the options.</span></p>
+    <div class="card reveal"><table>
+      <tr><th>Option</th><th>Where it landed</th></tr>
+      <tr class="win"><td><b>Score recovery over time</b></td><td>Chosen. Helps whichever 4.2 change caused the misses, and it has to answer the 2019 note's counter-argument.</td></tr>
+      <tr><td>Treat a miss differently from a "no"</td><td>Considered. The code says they are the same on purpose, and the question to the staff engineer is unanswered.</td></tr>
+      <tr><td>Guarantee a way back in</td><td>Considered. Needs a rule for when a low-scored responder gets a ping.</td></tr>
+      <tr><td>Revert the 90-second wait</td><td>Not recommended yet: we can't say which 4.2 change caused the misses.</td></tr>
+    </table></div>
+    <div class="card mod reveal" style="margin-top:16px">
+      <div class="modhead"><div class="num">5</div><div><div class="name">Module 5 · Super Speed</div><h3>The brief for Helen</h3></div></div>
+      <p style="margin:0">A one-pager for Kip (handler) and Meteor Mite (quiet responder), with Vesper as a second case, that says what is still unproven.</p>
+      <div><div class="qlabel">The prompt I wrote (#5)</div><blockquote>Let us address DIrector's request one by one. Ask me one by one question so that we can build the brief together.</blockquote></div>
+      <div class="artifact">Saved as <code>05-super-speed/brief.md</code></div>
     </div>
   </div>
 </section>
 
-<!-- 8. Evidence 4-6 -->
-<section class="slide" data-title="Evidence, modules 4 to 6">
+<!-- 9 Act III prototype -->
+<section class="slide" data-title="The prototype" data-phase="develop">
   <div class="wrap">
-    <p class="kicker reveal">The evidence trail · modules 4 to 6</p>
-    <h2 class="reveal">From the cause, to a fix, to a safeguard.</h2>
-    <div class="grid g3" style="margin-top:14px">
-      <div class="card mod reveal">
-        <div class="modhead"><div class="num">4</div><div><div class="name">X-Ray Vision</div><h3>The rule behind the silence</h3></div></div>
-        <p>In the code a missed ping costs the same 0.12 as a "no", and the score never recovers by itself. Vesper's replay ends at <b>0.00</b>.</p>
-        <div><div class="qlabel">The prompt I wrote (#5)</div><blockquote>as per generated code flow, it shows missed also reduce the score by same number of someone declining.</blockquote></div>
-        <div class="artifact">Diagrammed in <code>04-x-ray-vision/recovery-flow.html</code></div>
-      </div>
-      <div class="card mod reveal">
-        <div class="modhead"><div class="num">5</div><div><div class="name">Super Speed</div><h3>A brief for the Director</h3></div></div>
-        <p>Helen asked for a one-pager and something to click through. The brief proposes <b>score recovery over time</b>, written for Kip (handler) and Vesper (responder), and it says what is still unproven.</p>
-        <div><div class="qlabel">The prompt I wrote (#5)</div><blockquote>Let us address DIrector's request one by one. Ask me one by one question so that we can build the brief together.</blockquote></div>
-        <div class="artifact">Saved as <code>05-super-speed/brief.md</code></div>
-      </div>
-      <div class="card mod reveal">
-        <div class="modhead"><div class="num">6</div><div><div class="name">Sidekicks</div><h3>Skills that check the work</h3></div></div>
-        <p>A <b>review-checklist</b> skill that tests a brief, and a <b>qa-testing</b> skill that tests a build. On my own brief and prototype: 3 of 6 brief checks failed; 18 of 19 acceptance criteria passed.</p>
-        <div><div class="qlabel">The prompt I wrote (#2)</div><blockquote>Make a skill called review-checklist. When I point it at a brief, it checks that the brief: names who owns it, says how we'll know it worked, keeps the same scope start to finish, and explains the problem before the fix.</blockquote></div>
-        <div class="artifact">Saved in <code>.claude/skills/review-checklist</code></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 9. Fix / prototype -->
-<section class="slide" data-title="The fix, in my prototype">
-  <div class="wrap">
-    <p class="kicker reveal">The fix</p>
-    <h2 class="reveal">Let a quiet responder earn their way back.</h2>
-    <p class="lead reveal">Not a changed number. Old misses lose weight as time passes, so a rough patch fades, and the handler can see why someone is ranked where they are. Try it: this is the real prototype.</p>
-    <div class="grid" style="grid-template-columns:1.7fr 1fr;gap:16px;margin-top:14px" id="protoGrid">
+    <p class="chap reveal">Act III · Develop · The prototype</p>
+    <h2 class="reveal">Let a quiet responder <em>earn their way back</em>.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">So we built it. Old misses lose weight as time passes, and the handler can see why someone is ranked where they are. Try it: switch the release, replay the pings, then turn on recovery.</span></p>
+    <div class="grid" style="grid-template-columns:1.7fr 1fr;gap:16px;margin-top:10px" id="protoGrid">
       <div class="frame reveal"><div class="bar"><i></i><i></i><i></i>&nbsp;05-super-speed/prototype.html</div>
         <iframe src="05-super-speed/prototype.html" title="Score recovery prototype" loading="lazy"></iframe></div>
       <div>
         <div class="card reveal"><h3>Try this</h3>
           <ol style="padding-left:20px;margin:6px 0">
             <li>Switch <b>Release</b> between Before 4.2 and After 4.2 and watch the quiet responder drop from 1st.</li>
-            <li>Press <b>Replay Vesper's 17 pings</b>, then see the score fall to 0.00.</li>
+            <li>Pick a <b>quiet responder</b> (Meteor Mite or Vesper), press their <b>Replay</b> button, and watch the score fall to 0.00.</li>
             <li>Turn on <b>Score recovery</b> and drag the weeks slider.</li>
-            <li>Look for the <b>Recovering ↑</b> marker on the console and the message on the phone.</li>
+            <li>Look for the <b>Recovering ↑</b> marker and the message on the phone.</li>
           </ol></div>
         <div class="card reveal" style="margin-top:14px"><h3>Today vs with recovery</h3><svg id="chartD" viewBox="0 0 360 220" role="img" aria-label="Recent-acceptance score by week: flat today, rising with recovery"></svg>
           <p class="small muted">Illustrative recovery rate (35% of the gap a week). The brief does not set a rate yet.</p></div>
         <div class="reveal" style="margin-top:12px"><div class="qlabel">Prompt I wrote (#12) that shaped it</div>
           <blockquote>I also want you to build scenarios for me. For example, i have to wait for 60 seconds to miss. If i have to miss 10 pings to simulate, it will take 600 seconds, which is not efficient at all. Help me to build some button for quick scenario running.</blockquote>
-          <div class="btnrow"><a class="btn" href="05-super-speed/prototype.html">Open full screen</a><a class="btn alt" href="05-super-speed/replay-prototype.html">Open the 1,696-ping replay</a></div></div>
+          <div class="btnrow"><a class="btn" href="05-super-speed/prototype.html">Open full screen</a><a class="btn alt" href="05-super-speed/replay-prototype.html">The 1,696-ping replay</a></div></div>
       </div>
     </div>
-    <p class="small muted reveal" style="margin-top:10px">The first build came from the Module 5 starter prompt, which is not saved in <code>prompts.md</code>. The prompts shown here are the ones I wrote to shape it. If the prototype does not appear above, open the file directly. It needs to sit beside the <code>05-super-speed</code> folder.</p>
+    <p class="small muted reveal" style="margin-top:10px">The first build came from the Module 5 starter prompt, which is not saved in <code>prompts.md</code>. The prompt shown is one I wrote to shape it. If the prototype does not appear, open the file directly; it must sit beside the <code>05-super-speed</code> folder.</p>
   </div>
 </section>
 
-<!-- 10. Skills -->
-<section class="slide" data-title="Keeping it from happening again">
+<!-- 10 Act IV ch6 -->
+<section class="slide" data-title="Ch. 6 · Sidekicks" data-phase="deliver">
   <div class="wrap">
-    <p class="kicker reveal">Making sure it does not happen again</p>
-    <h2 class="reveal">Two skills that ask the awkward questions before we ship.</h2>
-    <p class="lead reveal">4.2 shipped with gaps that were easy to miss: a headline metric that hid four people, nobody owning the numbers, and a question to engineering left unanswered. The skills do not stop a release by themselves. They make those gaps show up on paper first.</p>
-    <div class="grid g2" style="margin-top:12px">
-      <div class="card reveal"><span class="tag j">SKILL 1</span><h3 style="margin-top:8px">review-checklist: tests the brief</h3>
+    <p class="chap reveal">Act IV · Deliver · Chapter 6 · Sidekicks</p>
+    <h2 class="reveal">Two sidekicks that <em>check the work</em> before it ships.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">A fix is only as good as the checking behind it. So we built two sidekicks: one that tests a brief, and one that tests a build. They do not stop a release by themselves. They make the gaps show up on paper first.</span></p>
+    <div class="grid g2" style="margin-top:6px">
+      <div class="card reveal"><span class="tag j">Sidekick 1</span><h3 style="margin-top:8px">review-checklist: tests the brief</h3>
         <p class="small muted">Run on my own brief:</p>
         <div class="tests">
           <div class="test pass"><b>✓ Success measure</b>Counts responders pinged less than half as often.</div>
@@ -310,73 +363,102 @@
           <div class="test fail"><b>✗ Owner</b>No one named as responsible.</div>
           <div class="test fail"><b>✗ Ready for management</b>Ends in questions, not a decision.</div>
           <div class="test fail"><b>✗ Plain language</b>Scoring values up front.</div>
-        </div></div>
-      <div class="card reveal"><span class="tag j">SKILL 2</span><h3 style="margin-top:8px">qa-testing: tests the build</h3>
-        <p>I approve acceptance criteria drawn from the brief, then the skill runs them in a real browser and writes a report. On the prototype:</p>
+        </div>
+        <div class="qlabel" style="margin-top:12px">The prompt I wrote (#2)</div>
+        <blockquote>Make a skill called review-checklist. When I point it at a brief, it checks that the brief: names who owns it, says how we'll know it worked, keeps the same scope start to finish, and explains the problem before the fix.</blockquote></div>
+      <div class="card reveal"><span class="tag j">Sidekick 2</span><h3 style="margin-top:8px">qa-testing: tests the build</h3>
+        <p>I approve acceptance criteria drawn from the brief, then the skill runs them in a real browser and writes a report.</p>
         <div class="grid g2" style="gap:10px"><div class="stat"><b class="green">18 / 19</b><span>criteria passed, including every "must"</span></div><div class="stat"><b class="amber">1</b><span>caught a console that did not show Kip's responders; fixed and retested</span></div></div>
         <p class="small muted" style="margin-top:8px">Its checks include the edges: the 0.00 floor, the 1.00 ceiling, and that a miss costs exactly what a "no" costs.</p>
-        <div class="qlabel">Prompt I wrote (#6)</div>
-        <blockquote>Make a skill called qa-testing. When I point to the product brief that outlines the requirements &amp; the staging environment where the code build against it is housed, it creates robust acceptance criteria’s, validate’s them with me, performs the tests &amp; generates a document with all findings.</blockquote></div>
+        <div class="qlabel">The prompt I wrote (#6)</div>
+        <blockquote>Make a skill called qa-testing. When I point to the product brief that outlines the requirements &amp; the staging environment where the code build against it is housed, it creates robust acceptance criteria’s, validate’s them with me, performs the tests &amp; generates a document with all findings.</blockquote>
+        <div class="modhead" style="margin-top:12px"><div class="num">6</div><div><div class="name">Module 6 · Sidekicks</div><div class="artifact">Saved in <code>.claude/skills/</code></div></div></div></div>
     </div>
-    <div class="card reveal" style="margin-top:14px"><h3>What each check would have forced on 4.2 <span class="tag u">MY JUDGMENT</span></h3>
-      <table>
-        <tr><th>Check</th><th>What it makes a team write down</th></tr>
-        <tr><td>Success measure</td><td>How we will know it worked, beyond the weekly average that hid four responders.</td></tr>
-        <tr><td>Owner</td><td>Who is responsible. Today nobody owns the weekly numbers.</td></tr>
-        <tr><td>Ready for management</td><td>The open question (should decliners be treated the same?) sits on the page, with the decision being asked for.</td></tr>
-        <tr><td>QA criteria</td><td>"A miss costs the same as a no" and "the score never recovers" become rules someone has to approve.</td></tr>
-      </table></div>
   </div>
 </section>
 
-<!-- 11. Next -->
-<section class="slide" data-title="What happens next">
+<!-- 11 Act IV measure -->
+<section class="slide" data-title="How we'll know" data-phase="deliver">
   <div class="wrap">
-    <p class="kicker reveal">What happens next</p>
-    <h2 class="reveal">Open items, in the order I would tackle them.</h2>
-    <div class="grid g2" style="margin-top:14px">
+    <p class="chap reveal">Act IV · Deliver · Measure and next steps</p>
+    <h2 class="reveal">Measure the <em>people</em>, not just the mean.</h2>
+    <p class="narr reveal"><b>Narrator</b><span class="nt">And how will we know it worked? Not by the weekly average. That is the number that hid the problem.</span></p>
+    <div class="grid g3" style="margin-top:6px">
+      <div class="card reveal"><span class="tag k">Success measure · from the brief</span><p style="margin-top:8px">Count responders pinged less than half as often as before 4.2, and how many weeks a responder stays quiet. Ravi to confirm this can be reported per responder.</p></div>
+      <div class="card reveal"><span class="tag u">Guardrails · my judgment</span><p style="margin-top:8px">Keep watching missed pings per week and the weekly acceptance rate, so recovery does not quietly raise misses elsewhere.</p></div>
+      <div class="card reveal"><span class="tag j">Gap</span><p style="margin-top:8px">The brief sets no target and no owner yet. A target, and someone who owns the per-responder numbers, are both still to be agreed.</p></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
       <div class="card reveal"><h3>Before the brief goes to Helen</h3>
-        <ul><li>Name an owner for the work.</li><li>Replace the closing questions with one clear decision to approve.</li><li>Move scoring values out of the opening and say what Vesper and Kip actually experience.</li></ul></div>
+        <ul><li>Name an owner for the work.</li><li>Replace the closing questions with one clear decision to approve.</li><li>Move scoring values out of the opening and say what Meteor Mite and Kip actually experience.</li></ul></div>
       <div class="card reveal"><h3>To close the open questions</h3>
-        <ul><li>Ask the staff engineer and Ravi for answer times, so we can tell the 60-second wait from the weight change.</li><li>Get the 14 Aug question answered: was treating decliners the same a decision?</li><li>Check what the console shows handlers today before promising a "recovering" marker.</li></ul></div>
-      <div class="card reveal"><h3>Decisions to settle</h3>
-        <ul><li>How fast should a score recover, and what stops a responder who really has stopped taking work?</li><li>Who owns the per-responder numbers: Ravi, support, or Dispatch?</li></ul></div>
-      <div class="card reveal"><h3>Keep using the skills</h3>
-        <ul><li>Run review-checklist on every brief before it is shared.</li><li>Run qa-testing on every build before it leaves staging.</li><li>Check the four briefs from the 13 Oct run against the wiki; their flags are not yet verified.</li></ul></div>
+        <ul><li>Get answer times from the staff engineer and Ravi, so we can tell the 60-second wait from the weight change.</li><li>Get the 14 Aug question answered: was treating decliners the same a decision?</li><li>Check what the console shows handlers today before promising a "recovering" marker.</li></ul></div>
     </div>
   </div>
 </section>
 
-<footer>
-  Rook Industries is a fictional course scenario (Product School, Claude Code for PMs). Figures come from the course database (pings table, 29 Jun to 6 Sep 2026), wiki and routing code; scores are rebuilt from the code's rules and are not Rook's own records.
-</footer>
+<!-- 12 Credits -->
+<section class="slide credits" data-title="Credits" data-phase="">
+  <div class="wrap">
+    <p class="chap reveal" style="justify-content:center">End credits</p>
+    <h2 class="reveal">The quiet four were never broken.<br><em>They were being averaged away.</em></h2>
+    <p class="narr reveal" style="margin-left:auto;margin-right:auto;text-align:left"><b>Narrator</b><span class="nt">The next time, we will look at the people, not just the mean, and we will ask the awkward questions before we ship.</span></p>
+    <p class="small muted reveal">Built for Product School's Claude Code for PMs (cohort ccpm-2026.1). Rook Industries is a fictional course scenario. Figures come from the course database (pings table, 29 Jun to 6 Sep 2026), the wiki and the routing code. Scores are rebuilt from the code's rules and are not Rook's own records. Visual style inspired by superhero film title cards; not affiliated with any studio.</p>
+  </div>
+</section>
 
 <script>
 (function () {
-  // ---------- navigation ----------
+  // ---------- navigation, HUD, auto-play, narration ----------
   var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
   var dots = document.getElementById('dots');
-  slides.forEach(function (s, i) {
+  slides.forEach(function (s) {
     var b = document.createElement('button'); b.setAttribute('aria-label', s.getAttribute('data-title')); b.title = s.getAttribute('data-title');
-    b.addEventListener('click', function () { s.scrollIntoView({ behavior: 'smooth' }); });
+    b.addEventListener('click', function () { stopAuto(); s.scrollIntoView({ behavior: 'smooth' }); });
     dots.appendChild(b);
   });
   function cur() { var y = window.scrollY + window.innerHeight * 0.4, k = 0; slides.forEach(function (s, i) { if (s.offsetTop <= y) k = i; }); return k; }
+  var last = -1;
   function onScroll() {
     var h = document.documentElement.scrollHeight - window.innerHeight;
     document.getElementById('progress').style.width = (h > 0 ? window.scrollY / h * 100 : 0) + '%';
-    var k = cur(); Array.prototype.forEach.call(dots.children, function (d, i) { d.classList.toggle('on', i === k); });
+    var k = cur();
+    Array.prototype.forEach.call(dots.children, function (d, i) { d.classList.toggle('on', i === k); });
+    var ph = slides[k].getAttribute('data-phase');
+    Array.prototype.forEach.call(document.querySelectorAll('#hud span'), function (sp) { sp.classList.toggle('on', sp.getAttribute('data-p') === ph); });
+    if (k !== last) { last = k; if (speaking) say(k); }
   }
-  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+  function go(n) { n = Math.max(0, Math.min(slides.length - 1, n)); slides[n].scrollIntoView({ behavior: 'smooth' }); }
   document.addEventListener('keydown', function (e) {
     var t = e.target && e.target.tagName; if (t === 'IFRAME' || t === 'INPUT' || t === 'TEXTAREA') return;
     var k = cur(), n = null;
-    if (['ArrowRight', 'ArrowDown', 'PageDown'].indexOf(e.key) >= 0) n = Math.min(slides.length - 1, k + 1);
-    if (['ArrowLeft', 'ArrowUp', 'PageUp'].indexOf(e.key) >= 0) n = Math.max(0, k - 1);
-    if (n !== null && n !== k) { e.preventDefault(); slides[n].scrollIntoView({ behavior: 'smooth' }); }
+    if (['ArrowRight', 'ArrowDown', 'PageDown'].indexOf(e.key) >= 0) n = k + 1;
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].indexOf(e.key) >= 0) n = k - 1;
+    if (n !== null) { e.preventDefault(); stopAuto(); go(n); }
   });
-  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) en.target.classList.add('in'); }); }, { threshold: 0.15 }) : null;
+  var timer = null, autoBtn = document.getElementById('auto');
+  function stopAuto() { if (timer) { clearInterval(timer); timer = null; autoBtn.classList.remove('on'); autoBtn.textContent = '▶ Auto-play'; } }
+  autoBtn.addEventListener('click', function () {
+    if (timer) { stopAuto(); return; }
+    autoBtn.classList.add('on'); autoBtn.textContent = '❚❚ Pause';
+    timer = setInterval(function () { var k = cur(); if (k >= slides.length - 1) { stopAuto(); return; } go(k + 1); }, 16000);
+  });
+  var speaking = false, speakBtn = document.getElementById('speak');
+  function say(k) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    var n = slides[k].querySelector('.nt'); if (!n) return;
+    var u = new SpeechSynthesisUtterance(n.textContent); u.rate = 0.98; window.speechSynthesis.speak(u);
+  }
+  speakBtn.addEventListener('click', function () {
+    if (!('speechSynthesis' in window)) { speakBtn.textContent = 'No voice here'; return; }
+    speaking = !speaking; speakBtn.classList.toggle('on', speaking);
+    if (speaking) say(cur()); else window.speechSynthesis.cancel();
+  });
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) en.target.classList.add('in'); }); }, { threshold: 0.12 }) : null;
   Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el, i) { if (io) { el.style.transitionDelay = (i % 4) * 90 + 'ms'; io.observe(el); } else el.classList.add('in'); });
+  onScroll();
 
   // ---------- chart helpers ----------
   var NS = 'http://www.w3.org/2000/svg';
@@ -429,25 +511,40 @@
     line(others, 'grey', 2.5, 'Other 12'); line(gale, 'green', 3.5, 'The Gale'); line(quiet, 'red', 3.5, 'Quiet four');
   })();
 
-  // Chart C: Vesper score steps
+  // Chart C: score steps for either quiet responder
   (function () {
     var svg = document.getElementById('chartC'), W = 560, H = 280, L = 40, R = 14, T = 22, B = 38, xmax = 70;
-    var pts = [[0,0.58],[1.63,0.46],[1.8,0.54],[2.56,0.62],[2.81,0.7],[2.85,0.78],[3.36,0.86],[3.65,0.94],[4.31,1],[4.62,1],[4.84,0.88],[5.04,0.96],[5.59,1],[6.92,0.88],[7.37,0.96],[8.08,0.84],[8.78,0.92],[8.87,1],[9.72,1],[10.96,1],[12.57,1],[12.59,0.88],[12.63,0.96],[12.89,1],[12.9,0.88],[13.45,0.96],[13.67,1],[14.09,1],[14.77,1],[14.78,1],[15.8,1],[16.51,1],[16.83,1],[16.83,1],[17.79,0.88],[17.89,0.96],[18.73,1],[18.81,0.88],[18.84,0.96],[20.58,1],[20.67,1],[20.82,1],[21.41,0.88],[21.43,0.76],[21.89,0.84],[23.08,0.92],[23.47,1],[23.48,1],[23.71,1],[23.77,1],[24.71,1],[25.05,1],[26.66,1],[26.8,0.88],[27.05,0.96],[27.96,1],[28.36,1],[28.87,1],[29.31,1],[29.48,1],[29.62,1],[30.15,1],[31.1,0.88],[31.32,0.96],[31.56,1],[31.97,1],[32.48,1],[32.71,1],[33.8,0.88],[36.28,0.96],[36.63,1],[36.64,1],[36.75,1],[37.7,1],[37.85,1],[38.24,1],[38.4,1],[38.51,0.88],[38.74,0.96],[39.54,1],[39.71,1],[39.75,0.88],[40.83,0.96],[42.08,1],[42.56,0.88],[43.88,0.96],[45.32,0.84],[46.12,0.92],[46.72,0.8],[47.54,0.88],[47.65,0.76],[47.87,0.84],[48.45,0.72],[48.59,0.6],[48.67,0.68],[49.37,0.76],[51.78,0.64],[55.01,0.52],[55.23,0.4],[55.84,0.28],[56.9,0.16],[58.76,0.04],[64.49,0]];
+    var DATA = {
+      mm: { name: "Meteor Mite", pts: [[2.36,0.58],[2.63,0.46],[3.05,0.54],[3.24,0.62],[4.77,0.7],[5.37,0.58],[5.5,0.46],[5.62,0.34],[5.98,0.42],[6.51,0.5],[6.76,0.58],[7.64,0.66],[8.49,0.74],[8.72,0.82],[8.96,0.9],[9.37,0.98],[9.82,1],[11.76,0.88],[11.78,0.96],[12.85,0.84],[13.56,0.92],[13.79,1],[14,0.88],[14.38,0.96],[14.45,0.84],[14.81,0.92],[15.31,0.8],[16.52,0.88],[18.88,0.96],[20.37,1],[20.38,1],[20.87,0.88],[20.95,0.76],[21.68,0.84],[21.76,0.92],[24.41,0.8],[24.45,0.68],[24.81,0.76],[24.89,0.84],[25.52,0.92],[25.72,0.8],[25.8,0.68],[26.38,0.76],[26.44,0.84],[28.03,0.92],[28.67,1],[28.76,1],[29.8,1],[29.82,0.88],[29.94,0.96],[31.72,1],[31.79,0.88],[31.89,0.96],[33.43,1],[34.66,1],[34.8,0.88],[35.82,0.96],[36.86,1],[37.57,0.88],[37.62,0.96],[38.05,0.84],[38.06,0.92],[38.21,0.8],[38.68,0.88],[40.33,0.96],[40.7,1],[40.86,1],[42.59,0.88],[42.89,0.96],[43.28,1],[44.79,0.88],[45.57,0.76],[45.63,0.64],[46.31,0.52],[47.64,0.6],[47.82,0.68],[48.47,0.56],[50.32,0.44],[51.73,0.52],[52.7,0.4],[54.87,0.28],[59.84,0.16],[61.39,0.04],[68.63,0]], lastTaken: [51.73, 0.52, "19 Aug"], zeroText: "falls to 0.00 by 5 Sep", title: "After 12 Aug, Meteor Mite had 14 pings", counts: '<b class="green">3</b> taken · <b class="amber">3</b> turned down · <b class="red">8</b> missed.' },
+      v: { name: "Vesper", pts: [[0,0.58],[1.63,0.46],[1.8,0.54],[2.56,0.62],[2.81,0.7],[2.85,0.78],[3.36,0.86],[3.65,0.94],[4.31,1],[4.62,1],[4.84,0.88],[5.04,0.96],[5.59,1],[6.92,0.88],[7.37,0.96],[8.08,0.84],[8.78,0.92],[8.87,1],[9.72,1],[10.96,1],[12.57,1],[12.59,0.88],[12.63,0.96],[12.89,1],[12.9,0.88],[13.45,0.96],[13.67,1],[14.09,1],[14.77,1],[14.78,1],[15.8,1],[16.51,1],[16.83,1],[16.83,1],[17.79,0.88],[17.89,0.96],[18.73,1],[18.81,0.88],[18.84,0.96],[20.58,1],[20.67,1],[20.82,1],[21.41,0.88],[21.43,0.76],[21.89,0.84],[23.08,0.92],[23.47,1],[23.48,1],[23.71,1],[23.77,1],[24.71,1],[25.05,1],[26.66,1],[26.8,0.88],[27.05,0.96],[27.96,1],[28.36,1],[28.87,1],[29.31,1],[29.48,1],[29.62,1],[30.15,1],[31.1,0.88],[31.32,0.96],[31.56,1],[31.97,1],[32.48,1],[32.71,1],[33.8,0.88],[36.28,0.96],[36.63,1],[36.64,1],[36.75,1],[37.7,1],[37.85,1],[38.24,1],[38.4,1],[38.51,0.88],[38.74,0.96],[39.54,1],[39.71,1],[39.75,0.88],[40.83,0.96],[42.08,1],[42.56,0.88],[43.88,0.96],[45.32,0.84],[46.12,0.92],[46.72,0.8],[47.54,0.88],[47.65,0.76],[47.87,0.84],[48.45,0.72],[48.59,0.6],[48.67,0.68],[49.37,0.76],[51.78,0.64],[55.01,0.52],[55.23,0.4],[55.84,0.28],[56.9,0.16],[58.76,0.04],[64.49,0]], lastTaken: [49.37, 0.76, "17 Aug"], zeroText: "falls to 0.00 by 1 Sep", title: "After 12 Aug, Vesper had 17 pings", counts: '<b class="green">5</b> taken · <b class="amber">3</b> turned down · <b class="red">9</b> missed.' }
+    };
     function X(d) { return L + (W - L - R) * d / xmax; } function Y(v) { return T + (H - T - B) * (1 - v); }
-    frame(svg, W, H, L, R, T, B, 1, [0, 0.25, 0.5, 0.75, 1], function (v) { return v.toFixed(2); });
-    var rx = X(44);
-    svg.appendChild(E('rect', { x: rx, y: T, width: W - R - rx, height: H - T - B, fill: css('red-soft'), opacity: .7 }));
-    svg.appendChild(E('line', { x1: rx, x2: rx, y1: T, y2: H - B, stroke: css('amber'), 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
-    svg.appendChild(E('text', { x: rx - 6, y: H - B - 8, 'text-anchor': 'end', class: 'big', style: 'fill:var(--amber)' }, '4.2 ships 12 Aug'));
-    var d = 'M' + X(0) + ',' + Y(0.5), cur = 0.5;
-    pts.forEach(function (p) { d += 'L' + X(p[0]) + ',' + Y(cur) + 'L' + X(p[0]) + ',' + Y(p[1]); cur = p[1]; });
-    d += 'L' + X(69) + ',' + Y(cur);
-    svg.appendChild(E('path', { d: d, fill: 'none', stroke: css('blue'), 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
-    svg.appendChild(E('circle', { cx: X(49.37), cy: Y(0.76), r: 5, fill: css('green') }));
-    svg.appendChild(E('line', { x1: X(49.37), x2: X(49.37), y1: Y(0.76) + 6, y2: Y(0.38), stroke: css('green'), 'stroke-width': 1.5 }));
-    svg.appendChild(E('text', { x: X(49.37) - 4, y: Y(0.38) + 14, 'text-anchor': 'end', class: 'big', style: 'fill:var(--green)' }, 'last taken ping, 17 Aug'));
-    svg.appendChild(E('text', { x: W - R - 4, y: T + 34, 'text-anchor': 'end', class: 'big', style: 'fill:var(--red)' }, 'falls to 0.00 by 1 Sep'));
-    [['29 Jun', 0], ['27 Jul', 28], ['24 Aug', 56]].forEach(function (a) { svg.appendChild(E('text', { x: X(a[1]), y: H - B + 18, 'text-anchor': 'middle' }, a[0])); });
+    function draw(k) {
+      var D = DATA[k]; svg.innerHTML = '';
+      frame(svg, W, H, L, R, T, B, 1, [0, 0.25, 0.5, 0.75, 1], function (v) { return v.toFixed(2); });
+      var rx = X(44);
+      svg.appendChild(E('rect', { x: rx, y: T, width: W - R - rx, height: H - T - B, fill: css('red-soft'), opacity: .7 }));
+      svg.appendChild(E('line', { x1: rx, x2: rx, y1: T, y2: H - B, stroke: css('amber'), 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+      svg.appendChild(E('text', { x: rx - 6, y: H - B - 8, 'text-anchor': 'end', class: 'big', style: 'fill:var(--amber)' }, '4.2 ships 12 Aug'));
+      var d = 'M' + X(0) + ',' + Y(0.5), cur = 0.5;
+      D.pts.forEach(function (p) { d += 'L' + X(p[0]) + ',' + Y(cur) + 'L' + X(p[0]) + ',' + Y(p[1]); cur = p[1]; });
+      d += 'L' + X(69) + ',' + Y(cur);
+      svg.appendChild(E('path', { d: d, fill: 'none', stroke: css('blue'), 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+      var lt = D.lastTaken;
+      svg.appendChild(E('circle', { cx: X(lt[0]), cy: Y(lt[1]), r: 5, fill: css('green') }));
+      svg.appendChild(E('line', { x1: X(lt[0]), x2: X(lt[0]), y1: Y(lt[1]) + 6, y2: Y(0.38), stroke: css('green'), 'stroke-width': 1.5 }));
+      svg.appendChild(E('text', { x: X(lt[0]) - 4, y: Y(0.38) + 14, 'text-anchor': 'end', class: 'big', style: 'fill:var(--green)' }, 'last taken ping, ' + lt[2]));
+      svg.appendChild(E('text', { x: W - R - 4, y: T + 34, 'text-anchor': 'end', class: 'big', style: 'fill:var(--red)' }, D.zeroText));
+      [['29 Jun', 0], ['27 Jul', 28], ['24 Aug', 56]].forEach(function (a) { svg.appendChild(E('text', { x: X(a[1]), y: H - B + 18, 'text-anchor': 'middle' }, a[0])); });
+      svg.setAttribute('aria-label', D.name + "'s recent-acceptance score over time, falling to zero after 12 August");
+      document.getElementById('scTitle').textContent = D.name + "'s score, replayed from the pings";
+      document.getElementById('rcTitle').textContent = D.title;
+      document.getElementById('rcCounts').innerHTML = D.counts;
+      document.getElementById('pickMM').classList.toggle('on', k === 'mm'); document.getElementById('pickV').classList.toggle('on', k === 'v');
+    }
+    document.getElementById('pickMM').addEventListener('click', function () { draw('mm'); });
+    document.getElementById('pickV').addEventListener('click', function () { draw('v'); });
+    draw('mm');
   })();
 
   // Chart D: today vs recovery (illustrative)
@@ -464,6 +561,7 @@
     svg.appendChild(E('text', { x: X(0) + 34, y: Y(0.78), class: 'big', style: 'fill:var(--green)' }, 'with recovery: climbs back'));
     for (var i = 0; i <= 6; i += 2) svg.appendChild(E('text', { x: X(i), y: H - B + 18, 'text-anchor': 'middle' }, 'wk ' + i));
   })();
+
 })();
 </script>
 </body>

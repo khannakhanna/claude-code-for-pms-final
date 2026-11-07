@@ -94,3 +94,11 @@ The 19 acceptance criteria were shown to the user as a table and approved as wri
 - All 19 criteria were run again on the changed build, with the same method. Result: 18 pass, AC7 still fails for the reason in F2.
 - Rank-based results changed because the list of responders changed (AC3: ranks 5, 5, 5, 4, 4, 4, 4). Every criterion still met its expected result.
 - The stronger AC8 check (from a 0.47 start) and the 375 px width check (AC18) were also rerun and passed.
+
+## 8. Retest after adding the "Quiet responder" picker
+
+- **Change:** the scenario buttons said Vesper while the console showed Meteor Mite, and the log lines named nobody. The prototype now has a **Quiet responder to follow** picker (Meteor Mite with Kip, or Vesper with Aunt Dot). The console title and callout area, the phone, the scenario buttons, the log and the replay all follow the pick. Each replay uses that responder's real pings since 12 Aug, in their recorded order (Meteor Mite 14: 3 taken, 3 turned down, 8 missed; Vesper 17: 5 taken, 3 turned down, 9 missed), starting from their score on 12 Aug rebuilt from the pings.
+- **Method:** all 19 criteria were run in headless Chrome once for each responder. AC16 now expects the chosen responder's own counts, and AC19 expects the matching handler (Kip's console with Meteor Mite and The Gale, or Aunt Dot's with Vesper on an Old Town callout).
+- **New criterion, added after the change (not part of the original approval):** AC20, the chosen responder's name appears on the console row, the phone, the scenarios heading, the replay button and in every log line. It passed for both.
+- **Result:** 19 of 20 pass for each responder. AC7 still fails for the reason in F2 (wording of the criterion).
+- **Replay scores:** both replays end at 0.00. Log lines now read, for example, "Meteor Mite ranked 5 of 5".

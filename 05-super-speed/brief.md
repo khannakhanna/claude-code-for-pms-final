@@ -14,17 +14,14 @@ Unlike reverting the ping wait, it changes what happens to a person after a bad 
 
 **Success measure:** not the weekly rate. Count responders pinged less than half as often as before 4.2, and weeks spent quiet (Ravi to confirm this can be reported per responder).
 
-## For Kip (handler)
-Kip handles Meteor Mite and The Gale, both in Eastgate. The Gale rose from 13 to 21 pings a week while Meteor Mite went quiet. We haven't checked what the console shows Kip today.
-- Quiet responders reappear in the rankings without an override.
-- A "recovering" marker shows why someone is ranked where they are.
+## For Kip (handler) and Meteor Mite (quiet responder)
+Kip handles Meteor Mite and The Gale, both in Eastgate. Meteor Mite was pinged on 62 of 118 Eastgate callouts before 12 Aug and 9 of 57 since; The Gale on 76 of 118, then 54 of 57. Since 12 Aug Meteor Mite has had 14 pings (3 taken, 3 turned down, 8 missed); the last taken ping was 19 Aug. We haven't checked what the console shows Kip today.
+- Meteor Mite reappears in the rankings, with a "recovering" marker that shows why someone is ranked where they are.
+- Pings come back after a stretch without new misses, and the phone app says the ping rate is recovering, so a quiet phone isn't a mystery.
 
-## For Vesper (quiet responder)
-Pinged on 76 of 76 Old Town callouts up to 16 Aug, 6 of 34 since. Since 12 Aug: 17 pings, 5 taken, 3 turned down, 9 missed.
-- Pings come back after a stretch without new misses, with no unbroken streak needed.
-- The phone app says the ping rate is recovering, so a quiet phone isn't a mystery.
+Vesper (Aunt Dot's, Old Town) shows the same pattern: 17 pings since 12 Aug (5 taken, 3 turned down, 9 missed). The prototype can follow either.
 
-*Our inference: no responders have been interviewed, and no ticket mentions Vesper or their handler.*
+*Our inference: no responders have been interviewed, and no ticket mentions Meteor Mite, Vesper, or their handlers.*
 
 ## Not proven
 - Why the first misses happened. Late answerers (60-90 seconds) now missing fits the code, but the data has no answer times. Priya reads the drop as seasonal; there is no earlier-year data to check.
@@ -34,4 +31,4 @@ Pinged on 76 of 76 Old Town callouts up to 16 Aug, 6 of 34 since. Since 12 Aug: 
 1. Marcus asked on 14 Aug whether the 4.2 ranking change was meant to apply equally to responders who turn jobs down. Wen said she'd look; the latest wiki comment (28 Aug) shows no answer. The code counts a miss and a turn-down the same ("we asked and we didn't get a yes"). Was that a decision?
 2. Do you want answer-time data before we decide?
 
-A clickable version, with Kip's console and Vesper's phone, comes next.
+A clickable prototype (`prototype.html`) shows Kip's console and the phone, with a switch between Meteor Mite and Vesper.

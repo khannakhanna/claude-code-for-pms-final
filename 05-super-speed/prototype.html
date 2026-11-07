@@ -87,9 +87,16 @@
 <body>
 <div class="wrap">
   <h1>Dispatch: let a quiet responder earn their way back</h1>
-  <p class="sub">Prototype for Helen. Example people and made-up numbers, not Rook data. Score rules (+0.08 taken, −0.12 missed or turned down) follow the routing code. Before 4.2: weights 0.45 / 0.40 / 0.15 and a 90-second wait. After 4.2: 0.60 / 0.25 / 0.15 and 60 seconds; the recovery rate is invented for illustration. One simulated quiet responder drives both screens: Meteor Mite on Kip's console and Vesper on the phone (simplification: in the real data their patterns differ).</p>
+  <p class="sub">Prototype for Helen. Example people and made-up numbers, not Rook data. Score rules (+0.08 taken, −0.12 missed or turned down) follow the routing code. Before 4.2: weights 0.45 / 0.40 / 0.15 and a 90-second wait. After 4.2: 0.60 / 0.25 / 0.15 and 60 seconds; the recovery rate is invented for illustration. Pick which quiet responder to follow: the console, phone, scenarios and replay all follow that pick (Meteor Mite is Kip's; Vesper is Aunt Dot's). Everyone else on the console is an example.</p>
 
   <div class="controls">
+    <div class="ctl">
+      <label>Quiet responder to follow</label>
+      <div class="seg" role="group" aria-label="Quiet responder">
+        <button id="wMM" aria-pressed="true">Meteor Mite (Kip)</button>
+        <button id="wV" aria-pressed="false">Vesper (Aunt Dot)</button>
+      </div>
+    </div>
     <div class="ctl">
       <label>Release</label>
       <div class="seg" role="group" aria-label="Release">
@@ -105,7 +112,7 @@
       </div>
     </div>
     <div class="ctl">
-      <label for="wk">Weeks since Vesper's score bottomed out</label>
+      <label for="wk" id="wkLabel">Weeks since the score bottomed out</label>
       <input id="wk" type="range" min="0" max="6" step="1" value="0">
       <span class="weekout" id="wkout">Week 0</span>
     </div>
@@ -116,7 +123,7 @@
   </div>
 
   <div class="card" style="margin-bottom:16px">
-    <h2>Quick scenarios · run Vesper's pings without waiting 60 seconds each</h2>
+    <h2 id="scnTitle">Quick scenarios</h2>
     <div style="padding:14px 16px">
       <div class="scn">
         <button class="btn alt" data-scn="miss5">Miss 5 pings</button>
@@ -125,17 +132,17 @@
         <button class="btn alt" data-scn="miss10">Miss 10 pings</button>
         <button class="btn alt" data-scn="down10">Turn down 10 pings</button>
         <button class="btn alt" data-scn="take7">Take 7 in a row</button>
-        <button class="btn alt" data-scn="replay">Replay Vesper's 17 pings since 12 Aug</button>
+        <button class="btn alt" data-scn="replay" id="replayBtn">Replay pings since 12 Aug</button>
       </div>
-      <p class="hint" id="scnHint">Scenarios add pings on top of where the screen is now. Missing and turning down cost the same 0.12; a taken ping adds 0.08. The replay starts Vesper at 0.90 under the 4.2 rules, then runs the outcomes in order (the order within a day is a guess).</p>
+      <p class="hint" id="scnHint"></p>
       <div class="log" id="log"></div>
     </div>
   </div>
 
   <div class="grid">
     <div class="card" id="console">
-      <h2>Kip's handler console · who gets pinged first</h2>
-      <div class="callout"><b>New callout · Eastgate · structural collapse (example)</b>Ranked responders, best match first. Click a row to see why.</div>
+      <h2 id="consoleTitle">Handler console · who gets pinged first</h2>
+      <div class="callout"><b id="calloutLoc">New callout (example)</b>Ranked responders, best match first. Click a row to see why.</div>
       <table>
         <thead><tr><th></th><th>Responder</th><th>Match score</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
@@ -146,10 +153,10 @@
 
     <div>
       <div class="card">
-        <h2>Vesper's phone app</h2>
+        <h2 id="phoneTitle">Phone app</h2>
         <div class="phonewrap"><div class="phone" id="phone"></div></div>
       </div>
-      <p class="legend">Press "Simulate a callout" on the phone, then take it, turn it down, or let the 60 seconds run out. Watch the quiet responder's rank change on Kip's console.</p>
+      <p class="legend">Press "Simulate a callout" on the phone, then take it, turn it down, or let the 60 seconds run out. Watch the quiet responder's rank change on the console.</p>
     </div>
   </div>
 </div>
@@ -158,19 +165,23 @@
 (function () {
   // Example responders. Proximity and capability are fixed example values.
   var W = { prox: 0.60, acc: 0.25, cap: 0.15 };
-  var people = [
-    { id: "n", name: "Nightwell",      prox: 0.62, acc: 0.85, cap: 1.00 },
-    { id: "v", name: "Captain Vantage",prox: 0.56, acc: 0.70, cap: 1.00 },
-    { id: "l", name: "The Longcast",   prox: 0.55, acc: 0.62, cap: 0.75 },
-    { id: "g", name: "The Gale",       prox: 0.55, acc: 0.90, cap: 1.00 },
-    { id: "s", name: "Meteor Mite",    prox: 0.60, acc: null, cap: 1.00, me: true }
-  ];
+  var QUIET = {
+    mm: { name: "Meteor Mite", handler: "Kip", area: "Eastgate", start: 1.00,
+          seq: ["d","m","m","m","t","t","m","d","t","m","m","d","m","m"],
+          others: [{ id: "n", name: "Nightwell", prox: 0.62, acc: 0.85, cap: 1.00 }, { id: "g", name: "The Gale", prox: 0.55, acc: 0.90, cap: 1.00 },
+                   { id: "v", name: "Captain Vantage", prox: 0.56, acc: 0.70, cap: 1.00 }, { id: "l", name: "The Longcast", prox: 0.55, acc: 0.62, cap: 0.75 }] },
+    v:  { name: "Vesper", handler: "Aunt Dot", area: "Old Town", start: 0.96,
+          seq: ["m","t","m","t","d","t","m","m","t","t","m","m","d","m","d","m","m"],
+          others: [{ id: "n", name: "Nightwell", prox: 0.62, acc: 0.85, cap: 1.00 },
+                   { id: "v", name: "Captain Vantage", prox: 0.56, acc: 0.70, cap: 1.00 }, { id: "l", name: "The Longcast", prox: 0.55, acc: 0.62, cap: 0.75 }] }
+  };
+  var people = [];
   var pingsToday = [2, 1, 1, 1, 1, 1, 1];
   var pingsRecov = [2, 3, 5, 7, 9, 10, 11];
 
   var WAFTER = { prox: 0.60, acc: 0.25, cap: 0.15 };
   var WBEFORE = { prox: 0.45, acc: 0.40, cap: 0.15 };
-  var state = { release: "after", mode: "today", week: 0, events: [], log: [], startOverride: null, run: 0, sel: "s", phone: "home", secs: 60, timer: null, toast: "" };
+  var state = { who: "mm", release: "after", mode: "today", week: 0, events: [], log: [], startOverride: null, run: 0, sel: "s", phone: "home", secs: 60, timer: null, toast: "" };
 
   function clamp(x) { return Math.max(0, Math.min(1, x)); }
   function baseAcc() {
@@ -187,15 +198,29 @@
   function addEvent(kind) {
     state.events.push(kind);
     var label = kind === "t" ? "Taken" : kind === "d" ? "Turned down" : "Missed";
-    state.log.unshift({ k: kind, text: label, after: vesperAcc(), rank: vesperRank() });
+    state.log.unshift({ k: kind, text: label, after: vesperAcc(), rank: vesperRank(), of: people.length, who: qn() });
     if (state.log.length > 40) state.log.pop();
+  }
+  function qn() { return QUIET[state.who].name; }
+  function buildPeople() { people = QUIET[state.who].others.concat([{ id: "s", name: qn(), prox: 0.60, acc: null, cap: 1.00, me: true }]); }
+  function labels() {
+    var q = QUIET[state.who], n = q.seq.length;
+    document.getElementById("wkLabel").textContent = "Weeks since " + q.name + "'s score bottomed out";
+    document.getElementById("scnTitle").textContent = "Quick scenarios · run " + q.name + "'s pings without waiting 60 seconds each";
+    document.getElementById("replayBtn").textContent = "Replay " + q.name + "'s " + n + " pings since 12 Aug";
+    document.getElementById("consoleTitle").textContent = q.handler + "'s handler console · who gets pinged first";
+    document.getElementById("calloutLoc").textContent = "New callout · " + q.area + " · structural collapse (example)";
+    document.getElementById("phoneTitle").textContent = q.name + "'s phone app";
+    document.getElementById("scnHint").textContent = "Scenarios add pings on top of where the screen is now. Missing and turning down cost the same 0.12; a taken ping adds 0.08. The replay starts " + q.name + " at " + q.start.toFixed(2) + " (their score on 12 Aug, rebuilt from the pings) and runs their real " + n + " pings in order.";
+    document.getElementById("wMM").setAttribute("aria-pressed", state.who === "mm");
+    document.getElementById("wV").setAttribute("aria-pressed", state.who === "v");
   }
   function clearRun() { clearInterval(state.timer); state.run += 1; state.events = []; state.log = []; state.startOverride = null; state.phone = "home"; state.toast = ""; }
   function renderLog() {
     var el = document.getElementById("log");
     if (!state.log.length) { el.innerHTML = '<div class="empty">No pings yet. Run a scenario or simulate one on the phone.</div>'; return; }
     el.innerHTML = state.log.map(function (l) {
-      return '<div class="' + (l.k === "t" ? "t" : "m") + '"><span>' + l.text + '</span><span>score ' + f2(l.after) + ' · ranked ' + l.rank + ' on the console' + '</span></div>';
+      return '<div class="' + (l.k === "t" ? "t" : "m") + '"><span>' + l.text + '</span><span>score ' + f2(l.after) + ' · ' + l.who + ' ranked ' + l.rank + ' of ' + l.of + '</span></div>';
     }).join("");
   }
   function runSeq(seq, startAt) {
@@ -271,7 +296,7 @@
     var acc = vesperAcc();
     var pings = state.release === "before" ? 12 : (state.mode === "today" ? pingsToday : pingsRecov)[state.week];
     var wait = state.release === "before" ? 90 : 60;
-    var h = '<div class="top">Dispatch<small>Vesper · Available</small></div><div class="body">';
+    var h = '<div class="top">Dispatch<small>' + qn() + ' · Available</small></div><div class="body">';
     if (state.phone === "home") {
       h += '<div class="pcard"><small>Pings this week (example)</small><div class="big">' + pings + '</div></div>';
       if (state.release === "before") {
@@ -285,7 +310,7 @@
       }
       h += '<button class="btn" id="sim">Simulate a callout</button>';
     } else if (state.phone === "ping") {
-      h += '<div class="pcard"><b>Callout · Old Town</b><br><small>Structural collapse (example)</small></div>' +
+      h += '<div class="pcard"><b>Callout · ' + QUIET[state.who].area + '</b><br><small>Structural collapse (example)</small></div>' +
         '<div class="count" id="count">' + state.secs + '</div><div style="text-align:center;color:var(--muted)">seconds to answer</div>' +
         '<button class="btn good" id="take">Take it</button><button class="btn alt" id="down">Turn it down</button>' +
         '<button class="btn alt" id="skip">Skip ahead: let it run out (miss)</button>';
@@ -320,6 +345,7 @@
   }
 
   function render() {
+    labels();
     var before = state.release === "before";
     W = before ? WBEFORE : WAFTER;
     document.getElementById("rBefore").setAttribute("aria-pressed", before);
@@ -335,6 +361,9 @@
     renderLog();
   }
 
+  function setWho(w) { clearRun(); state.who = w; state.sel = "s"; buildPeople(); render(); }
+  document.getElementById("wMM").addEventListener("click", function () { setWho("mm"); });
+  document.getElementById("wV").addEventListener("click", function () { setWho("v"); });
   function setRelease(r) { clearRun(); state.release = r; if (r === "before") state.mode = "today"; render(); }
   function soft() { state.run += 1; state.startOverride = null; clearInterval(state.timer); state.phone = "home"; }
   document.getElementById("rBefore").addEventListener("click", function () { setRelease("before"); });
@@ -355,10 +384,11 @@
       else if (k === "take7") runSeq(rep("t", 7));
       else if (k === "replay") {
         state.release = "after"; state.mode = "today";
-        runSeq(["m","m","t","t","t","d","m","m","t","t","m","m","m","d","d","m","m"], 0.90);
+        runSeq(QUIET[state.who].seq, QUIET[state.who].start);
       }
     });
   });
+  buildPeople();
   render();
 })();
 </script>
