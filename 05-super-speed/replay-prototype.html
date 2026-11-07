@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch ping replay</title>
+<style>
+  :root {
+    --bg:#f4f5f7; --panel:#fff; --ink:#1c2330; --muted:#5d6677; --line:#dde1e8; --accent:#2457d6; --accent-ink:#fff;
+    --good:#1c7c4d; --warn:#b4540a; --bad:#b3261e; --chip:#e8efff; --hot:#fff4e0; --bar:#c9d3ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12151b; --panel:#1b2029; --ink:#e8ebf1; --muted:#9aa3b5; --line:#2b3240; --accent:#6d95ff; --accent-ink:#0c1220;
+      --good:#5fcf94; --warn:#f0a15a; --bad:#ff8d84; --chip:#243056; --hot:#3a2e18; --bar:#34406a; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1150px; margin:0 auto; padding:20px 16px 40px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:14px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .card h2 { font-size:12px; margin:0; padding:9px 14px; border-bottom:1px solid var(--line); color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .bar-controls { padding:12px 14px; display:flex; flex-wrap:wrap; gap:12px 22px; align-items:center; margin-bottom:14px; }
+  .lbl { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:0; background:transparent; color:var(--ink); padding:7px 11px; font:inherit; cursor:pointer; }
+  .seg button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); font-weight:600; }
+  .btn { border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:8px; padding:8px 12px; font:inherit; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; min-width:84px; }
+  .clock { font-size:20px; font-weight:700; min-width:200px; }
+  .clock small { display:block; font-size:12px; font-weight:400; color:var(--muted); }
+  input[type=range].scrub { width:100%; accent-color:var(--accent); }
+  .scrubrow { padding:0 14px 12px; margin-top:-6px; }
+  .scrubwrap { position:relative; }
+  .marker { position:absolute; top:-2px; width:2px; height:22px; background:var(--warn); pointer-events:none; }
+  .markerlbl { position:absolute; top:-18px; font-size:11px; color:var(--warn); transform:translateX(-50%); white-space:nowrap; }
+  .grid { display:grid; grid-template-columns:1.35fr 1fr; gap:14px; align-items:start; }
+  @media (max-width:900px) { .grid { grid-template-columns:1fr; } }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:11px; color:var(--muted); font-weight:600; padding:7px 12px; text-transform:uppercase; letter-spacing:.04em; }
+  td { padding:7px 12px; border-top:1px solid var(--line); }
+  tr.row { cursor:pointer; }
+  tr.row:hover td, tr.row.sel td { background:var(--chip); }
+  .sbar { width:120px; height:9px; background:var(--line); border-radius:5px; overflow:hidden; display:inline-block; vertical-align:middle; }
+  .sfill { height:100%; transition:width .12s; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .tag { font-size:11px; padding:1px 7px; border-radius:9px; background:var(--hot); color:var(--warn); font-weight:600; margin-left:6px; }
+  .tag.hl { background:var(--chip); color:var(--accent); }
+  .detail { padding:12px 14px; border-top:1px solid var(--line); }
+  .tape { display:flex; flex-wrap:wrap; gap:3px; margin-top:8px; max-height:90px; overflow:auto; }
+  .dot { width:10px; height:10px; border-radius:50%; }
+  .dot.t { background:var(--good); } .dot.m { background:var(--bad); } .dot.d { background:var(--warn); }
+  .charts { padding:10px 14px 14px; }
+  .chart { display:flex; align-items:flex-end; gap:6px; height:110px; margin:6px 0 4px; }
+  .col { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; }
+  .colbar { width:100%; background:var(--accent); border-radius:3px 3px 0 0; min-height:1px; transition:height .12s; }
+  .colbar.m { background:var(--bad); }
+  .colv { font-size:11px; color:var(--muted); }
+  .axis { display:flex; gap:6px; font-size:10px; color:var(--muted); }
+  .axis span { flex:1; text-align:center; }
+  .axis .rel { color:var(--warn); font-weight:700; }
+  .feed div { padding:5px 14px; border-top:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; gap:10px; }
+  .feed .t { color:var(--good); } .feed .m { color:var(--bad); font-weight:600; } .feed .d { color:var(--warn); }
+  .fine { font-size:12px; color:var(--muted); padding:10px 14px; border-top:1px solid var(--line); }
+  .cmpbar { padding:12px 14px; display:flex; flex-wrap:wrap; gap:10px 24px; align-items:flex-end; }
+  .cmpbar select { font:inherit; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); min-width:170px; }
+  .cmpbar .btn { margin:2px 4px 2px 0; font-size:13px; padding:6px 10px; }
+  .swatch { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .cmpgrid { display:grid; grid-template-columns:1.3fr 1fr; gap:14px; padding:0 14px 14px; align-items:start; }
+  @media (max-width:900px) { .cmpgrid { grid-template-columns:1fr; } }
+  .cmpgrid table td, .cmpgrid table th { padding:6px 8px; }
+  .cmpgrid .a { color:var(--accent); font-weight:700; } .cmpgrid .b { color:var(--warn); font-weight:700; }
+  .note2 { font-size:12px; color:var(--muted); margin-top:6px; }
+  svg text { fill:var(--muted); font-size:10px; }
+  label.chk { font-size:13px; color:var(--muted); display:flex; gap:6px; align-items:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dispatch ping replay</h1>
+  <p class="sub">Every ping in the Rook database (1,696 pings, 29 Jun to 6 Sep 2026) played back in date order. Each responder's recent-acceptance score is recalculated with the routing code's rules: starts 0.50, +0.08 taken, −0.12 turned down or missed, floor 0, never fades.</p>
+
+  <div class="card bar-controls">
+    <div>
+      <span class="lbl">Playback</span>
+      <button class="btn primary" id="play">Play</button>
+      <button class="btn" id="step">Next ping</button>
+    </div>
+    <div>
+      <span class="lbl">Speed (replay time per real second)</span>
+      <div class="seg" id="speeds">
+        <button data-s="60">1 hour</button>
+        <button data-s="360">6 hours</button>
+        <button data-s="1440" aria-pressed="true">1 day</button>
+        <button data-s="4320">3 days</button>
+        <button data-s="10080">1 week</button>
+      </div>
+    </div>
+    <div>
+      <span class="lbl">Jump to</span>
+      <button class="btn" id="toStart">Start</button>
+      <button class="btn" id="to42">Just before 4.2 (12 Aug)</button>
+      <button class="btn" id="toEnd">End</button>
+    </div>
+    <div class="clock" id="clock"></div>
+    <label class="chk"><input type="checkbox" id="hl" checked> Mark the four who went quiet</label>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="scrubrow" style="padding-top:26px">
+      <div class="scrubwrap">
+        <span class="markerlbl" id="mlbl">4.2 ships 12 Aug</span>
+        <span class="marker" id="mk"></span>
+        <input class="scrub" type="range" id="scrub" min="0" step="1" value="0">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h2>Compare two responders · score over time and what happened to their pings</h2>
+    <div class="cmpbar">
+      <div><span class="lbl"><span class="swatch" style="background:var(--accent)"></span>Responder A</span><select id="selA"></select></div>
+      <div><span class="lbl"><span class="swatch" style="background:var(--warn)"></span>Responder B</span><select id="selB"></select></div>
+      <div><span class="lbl">Ready-made pairs</span>
+        <button class="btn" data-pair="15,12">Vesper vs The Gale</button>
+        <button class="btn" data-pair="6,12">Meteor Mite vs The Gale (same handler, Kip)</button>
+        <button class="btn" data-pair="15,7">Vesper vs Nightwell</button>
+        <button class="btn" data-pair="14,0">The Undertow vs Captain Vantage</button>
+      </div>
+    </div>
+    <div class="cmpgrid">
+      <div><svg id="lines" viewBox="0 0 600 190" width="100%" role="img" aria-label="Score over time for the two chosen responders"></svg></div>
+      <div id="cmpTable"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Responders · recent-acceptance score (click a row)</h2>
+      <table>
+        <thead><tr><th>Responder</th><th>Score</th><th></th><th class="num">Pings, last 7 days</th><th class="num">Missed</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="detail" id="detail"></div>
+      <div class="fine">Only the recent-acceptance part of the ranking can be rebuilt from the database. Travel time, capability and availability are not in it, so this does not show who would rank first. Assumes every score started at 0.50 on 29 Jun and that the repo code is what ran.</div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Missed pings per week</h2>
+        <div class="charts"><div class="chart" id="chM"></div><div class="axis" id="axM"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Pings taken, share of all pings, per week</h2>
+        <div class="charts"><div class="chart" id="chA"></div><div class="axis" id="axA"></div></div>
+      </div>
+      <div class="card">
+        <h2>Latest pings</h2>
+        <div class="feed" id="feed"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var NAMES = ["Captain Vantage","Cindermark","Corporal Ashgrove","Farlight","Halfmoon","Ironvale","Meteor Mite","Nightwell",
+    "Sgt. Bulwark","Sgt. Falkirk","Stormwrack","The Drift","The Gale","The Longcast","The Undertow","Vesper"];
+  var QUIET = { 3:1, 6:1, 14:1, 15:1 }; // Farlight, Meteor Mite, The Undertow, Vesper (from our earlier analysis)
+  var D1 = "dd5;ft0;bt23;8t122;et193;ct68;et35;ct67;2t116;ct50;9t49;ed104;at1;et38;5d46;et0;ct144;0t34;ed3;bt0;9t59;5t15;4t220;2t72;9t311;8d122;3t0;ed81;5t0;7t60;0t269;fd38;0d1;7t0;0t59;9t148;ft44;1t1;4t71;7m39;0t13;bt39;3d114;cd0;8t1;7t434;6t93;3t10;et112;0d18;1t23;3d2;8t0;3d3;1d0;4t114;2t2;ft3;6d91;ct0;7t18;8t16;7t126;4d73;2t1;at1;2d1;et28;ft1;7t37;ft15;3t35;8t2;2d2;4t0;1d20;3t1;0t36;3t1;0t0;7d199;6t0;1t154;at28;6t89;5t69;8t71;3t30;at4;ft5;3t20;4t51;9t136;7t86;ct17;ft105;1t80;2t106;4t28;2t29;dt22;5t39;at96;5t356;dd194;ft0;at107;7t270;ct22;ft44;9t11;2t40;8d26;3t1;ad81;et0;et15;6t37;1t15;at34;dt0;0t8;dt38;ct7;fd7;dt0;0t106;at36;3t137;ft10;at14;5t310;0t64;ad12;bt0;1t9;6d68;6d179;7t0;et33;1t98;7d9;ft0;6d31;ct0;9t147;4t3;9m23;2t2;ad68;bd0;cm283;6t1;at578;7t124;cd61;6t1;7d107;ct0;4t90;9t23;4d96;5d23;6t20;7t39;0t8;bt33;8t0;fd147;9t59;4d42;dt0;7t66;0t30;8t20;dt48;3t116;1t133;ct86;dm40;ft2;0t88;7t8;0t54;5t7;2t2;8t15;cd215;6t0;et81;9t29;at16;7d159;ct1;bd39;2t12;dt37;2t33;fm238;dt1;bt386;9m91;3t1;cd104;6t1;4t42;at106;ed5;5d1;1t33;7d23;0t0;2d60;9t1;et54;6t8;et2;2d4;4t0;8t62;0d14;ft0;bt3;2t75;bt4;1t27;ft28;9t22;5t12;ct6;6t83;3d70;1t103;9t373;6t43;0t90;9t23;4d19;2t0;bt134;9d35;3t0;cd74;7t0;7t88;ft39;at19;7d56;ct1;0m15;7t2;6t61;5d22;et1;at7;9t56;et15;9t1;5d308;et1;0t159;3t182;bt6;ed15;ad1;0t443;2t96;0t12;4t29;3t29;3d54;8t1;3d29;1t0;3t70;et11;4t41;2t40;ft7;et519;1t8;4t140;4d16;4d184;ad221;7d70;6d0;8d23;6t0;at161;0t35;8t502;3t147;7t88;1t21;ft192;8d15;3t0;fd14;7t0;ft47;et67;8t177;dt4;6d79;ct1;at9;0d40;ft0;fd9;7t1;at28;dt145;ct449;ct31;2t146;ct1;ft5;at1;at3;4t10;ct34;6t98;at22;at37;7t59;5t8;8t0;1d10;3t0;dd21;4t1;ft8;1t30;6t134;9t12;5t6;0t85;2t140;5t16;6d49;7t0;8t27;ct7;bt41;ft56;bd110;et1;1t297;6t16;6d93;4t30;ct5;ct7;dt61;0t96;bt50;3t35;9t39;ft134;4t2;ft13;cd40;6t1;em61;5t2;3m178;9t1;8d491;6d0;ct0;0t11;7m80;0t1;7t89;8t6;at9;4t69;7t66;7t270;dt0;7t12;ft85;5t54;5d130;1t0;at31;3t379;5t275;0d148;ft0;cd26;6t0;2t5;et25;9d40;ct53;dt61;et15;at59;dt98;0t15;at16;5t42;ft7;ft7;3t209;4t8;7d570;ct1;9d66;2t0;7t37;1t65;7t8;8d90;ct0;at42;3t7;0d166;7t0;et38;8t21;fd57;dt1;3t3;ad50;et0;9d25;8t1;4t21;ft42;et10;0d92;7t1;4d127;2t0;ct170;ct205;3d45;9t0;ad75;bt1;1t281;2m67;9t1;8t1;4d15;ft110;ed26;1d0;5t1;ed2;at0;et7;8t4;ad41;et0;fm40;7t2;0t13;ft33;cd46;6t0;8t276;4d151;dt1;et214;4t35;ct28;dd225;4t0;5t136;7t148;2d8;9t0;2t19;bt12;1m25;5t2;3d13;9t1;3t59;9t57;bt20;at6;3t20;3t121;at423;at122;6t23;6t24;bt150;1t34;7d84;ft12;0t20;0d64;7t1;ft43;5t69;dt26;ft124;0t4;9t24;1t11;6d43;7t0;2t18;2t46;6d45;8t0;2t36;2d9;4t0;0t23;4t31;ed69;7t140;1t110;ed71;9d10;fd159;7t1;fd26;0t0;3t21;3t57;ad289;et0;6t5;2t26;et71;et7;7d12;6t0;9t34;1t13;dd130;ft1;3t625;1t135;1d50;3t1;2d95;4t0;2d49;4t1;cd232;0d1;7t0;0d6;7t0;ad6;bt1;at73;ct13;2t41;4d120;2t0;ft267;1t278;4d79;dt0;bt9;cd102;7t0;ct39;1t5;5t19;ft34;ft8;4d25;7t181;7t70;ft52;3m31;9t2;0t10;ft43;et1;1d25;9d0;3t0;5d64;1t1;ct42;0t54;0t1;et65;4t130;dt403;6m140;ct1;6d53;ct1;7t188;at34;bd46;et17;2t49;at7;4t2;bt15;ft15;7t61;7d17;7t37;et11;6t30;8t96;9t4;6t7;8d33;3t0;3d98;8t0;0m95;7m2;ft2;at57;dt129;3t36;8t142;9t187;dt123;6t10;3d58;5d1;9t33;cm56;8t2;7d121;ct0;6d12;4d46;at59;5t10;0d0;6d2;ct0;3t24;8d34;9t137;ct36;3t60;ct422;5t27;6t95;5t9;7t16;at28;6t35;2t20;bt38;et42;at7;8t122;at60;ft25;1t13;2t108;dt10;fd73;7t1;4t32;0t9;9t49;at74;at119;et34;ft33;0t30;at100;ed182;5t0;2t119;dd115;4t0;9t1;0t459;bt2;et112;ct8;4t32;ct14;8t4;8t66;1d67;5t0;at4;ft8;6t99;1t80;4t4;7t77;5t10;dt68;9t138;ft89;et21;9t99;et43;3t77;dt20;at3;3t23;5d147;1t0;6t24;7t19;5t64;2d24;6t16;ct35;4t2;bt51;ft65;4t22;at10;2t0;at262;7t130;ft211;ad131;et0;9d72;ft49;9t95;ct90;ft10;at109;et75;6t74;4t29;6m11;ct1;0t44;5t58;ct13;ad8;bt1;8d39;6t0;3d24;1t0;7d93;ct0;dd184;ft0;et33;1t142;et5;2t89;9t38;1t142;8t4;2t193;0t6;ad153;et1;8d30;3t0;7t37;8t116;dt179;fm210;0t1;2t12;ft306;bt47;4t22;ft267;4t33;2t1;0t127;dt41;8d23;6t1;7t2;6d99;8t0;6t154;3t25;2t78;ft9;0t5;4t131;3t387;7d49;0t1;ft158;4d8;2t1;4t85;0d160;7t0;ft77;7t4;7d51;ct1;5m25;et2;bt61;ed44;at0;ct7;ct70;3t224;0t416;ed3;at0;dt9;7d118;6t0;8t89;at53;0d7;7t0;ct25;1t48;et9;1d103;3t0;at59;et120;fd25;7t1;8t139;bt30;3d88;1t59;ct62;9d466;3t1;9t75;3d27;9t1;2d24;4t0;2t37;1d113;5t0;cm25;at4;cd82;6t0;5t10;7t13;0t35";
+  var D2 = "0t66;3t54;6d28;ct0;bd71;at1;3t30;0d57;4d0;dd1;7t0;9t16;7t157;7d43;ct1;1t175;ad46;cd199;at36;9t82;4d258;2t0;4t29;3d30;8t0;9t5;7t7;0d73;7t1;6t144;ct25;0t48;1t231;ft366;0t131;et90;8t94;ct28;ed16;ft146;ft7;2t33;ct52;ft83;3t117;dt4;6t29;9t62;2t95;4d158;9d0;2t1;3t219;3t256;dd2;2d0;4t1;5t108;5t1;0t40;4t57;7d33;6d0;ct1;1t21;0t29;dt14;6t1;0t24;0t4;3t65;dd23;ft1;et55;bm32;et1;2d16;9t0;1t9;9d61;3t1;7t9;ft31;ed29;at1;5t41;8t102;9t57;et34;6d25;8t0;cd7;6t0;6d221;7t0;ft46;ft235;at50;dt28;fd74;7t1;3t4;2t10;8t121;4t12;6t97;at29;ft59;4t15;cd96;8t0;at8;4t59;bt47;1t136;ed277;at1;0t152;bt18;0t20;et172;7t3;dt95;3d28;9t0;ft22;8t59;7t13;2t55;ad79;bt0;at3;ft41;4t39;5t4;fd5;7t0;3t47;et69;0d59;7t0;0t32;et50;bt4;et57;3m68;9t2;7t407;9t1;8d42;6t1;4d119;2t0;8d46;3t0;1d54;5t0;et145;7d176;6t1;7t28;at61;4t23;at2;ft62;3d28;1t1;6t23;5t210;ct382;ad226;bt0;0d93;ct152;at135;1t39;2t77;5d10;1t1;dt48;5t75;ct95;ct36;ct35;ft144;7t18;4t293;bt85;4t25;7t28;2t189;fd54;6d30;8d1;ct0;1t4;bt79;3t11;3t116;4d59;9d1;2t0;9t13;5d1;et1;0t11;5t35;et10;0d58;7t0;at11;3d14;9t1;6t6;at26;5t46;6t494;0t125;ct144;8t28;2d181;cm12;dt170;ed77;at0;7d2;ct1;7t4;ad98;0t6;ft11;8t13;dt5;1d33;1t6;at133;em534;at1;bm156;at1;0d140;7t0;4d132;2t0;9d21;1d0;3t1;5t134;0m13;6d1;cm0;7t1;am32;bt1;5d13;3m0;1t1;3d10;9t1;am166;fm525;4m2;dt1;3m128;1d1;9t0;em98;9m59;2t1;am63;et1;6m15;0d1;cm0;7t1;3m66;9t1;6m20;ct1;et42;0t85;9m42;2d1;em41;dt172;ad316;em1;dd0;7d0;ft0;2m229;4t2;4t28;6m14;ct1;5m97;em78;5t1;5d71;1t1;8m9;ct1;2d159;9t1;dt98;3m29;1t1;fm37;0t1;4t144;cd7;8t1;0t39;3t60;ct81;7d858;dd0;ft1;8t68;cd68;8d0;6t0;fd15;7t1;at57;bd81;4m0;at0;2t1;bm5;ad1;9t67;8m33;6t1;1m72;5t1;dm3;7m1;ft1;1t661;8d104;7m1;ct1;7d21;4d34;2t0;fm6;0t1;6m29;7d1;ed149;bt0;fm19;0t1;0d117;ft0;4t83;cd247;7t0;8t3;ct103;dt393;1t171;7m11;ft1;2t37;2d121;9t32;ed125;bt0;0t47;ct126;2t116;1t2;et6;ct15;cd21;7t1;5t8;4t17;8t25;ct22;ad61;ct38;at11;at111;6d420;ct0;8t88;8d102;7d0;ct0;0t77;1t141;9t8;7t56;5t0;1t18;em31;ad1;5t0;cd121;8t1;at10;9d1;9t15;1t167;7t2;5m31;9t7;4d368;9t147;8t258;4m101;9d40;3m0;8t2;0t87;bt60;5d17;cm75;6t1;at1;5m10;7t9;4t51;fm1;dt1;0m107;7t1;0t10;9t57;at13;bt50;bm396;at1;bt190;5d112;1t0;cd135;at84;0m25;7t1;6m136;0d44;4t3;7d24;0t0;2t45;0t124;2m115;4t1;8t4;7t296;4d173;dt0;8t101;dm175;4t1;dt79;1m251;5t1;at0;9m6;em1;am1;bt1;am2;8m20;ct1;at3;7t13;9t209;8t26;ct37;0t47;0t10;7t35;0t175;3d528;1t1;7t28;ct3;0t7;ct33;1d118;bd19;dd13;0d176;7t0;dt100;cm81;6m1;7t1;fm196;7m1;9t0;0t1;fd322;7t1;1d153;5t0;ct119;2d57;9t1;at108;3m58;1t1;9m177;2t1;2t77;ct28;5t30;4m69;fm1;dt1;at1;at45;7t39;1t346;2m221;9d1;at97;at120;at154;9t76;dm136;7t1;dm10;0t1;ct7;cm1;7t1;ad14;bt0;at15;cm78;dd13;0t60;5t1;0t10;fd76;am23;bt1;2t182;at14;ct33;am367;8d199;ct0;cd50;0m51;5t22;8t24;dt66;ad13;5t125;9m145;1t1;dt101;1d69;1t85;7t23;9t66;9t58;0t294;4t129;0t5;ct15;at147;ct25;4t294;fm42;9t26;0t22;7t8;0d115;7t0;5m22;5d1;bt0;1t0;4t44;4d27;2t1;7t457;bt116;1d149;8d0;9t0;7d35;0t1;at223;8m178;4t30;0t46;7t32;6d21;0d0;7d0;2t47;1t87;em61;bt1;8t22;at219;ct110;7d89;cd0;4d204;2t1;8t315;7d104;ct1;ct24;0t90;3m30;1t1;1m25;5t1;7t23;7t7;ct51;ad33;5t0;at1;5t53;7t572;6m60;7m1;ct1;at17;9t86;7t170;7t56;0t30;7m38;0t1;at67;dt116;1m15;8m1;9t1;9t27;9d59;2d0;bd52;8t0;at0;0t222;ct231;cd135;8t1;2t134;5m31;1t1;9m10;8t1;dd68;0t0;0d144;cd0;7t0;9t8;8t69;at6;1t67;5t10;4t38;bm20;ct57;7d19;ct43;ct12;9t7;9t3;5t17;dt32;bt7;4m30;dt1;cd800;1t20;1t176;9t70;8m101;9t1;at8;cd47;8t1;1d1;8d1;9t0;7t59;1d69;9t0;dm119;0t2;5t96;5t29;7d478;ct1;2m79;4t1;at112;7t7;7m1;0t1;fm25;0d1;7t1;bt80;9t78;2d12;4t1;dt148;bt25;ct28;ct61;cm63;8t1;9d5;2t0;9t74;2t19;7t665;7d25;0t1;9t148;5t129;7d58;0t0;9t14;ct30;am10;1t14;5t34;9m115;bm130;at1;4t31;0t79;bt664;9t48;2t29;0t26;ct90;9d3;1t0;7t25;5t33;1t12;4d42;dt1;7t94;at12;ct35;0m91;7t1;4t97;bt4;bd39;at0;1t69;cm26;8t1;8t12;ct470;ct47;ct98;dt42;0t118;at8;4t5;7d10;0t0;1t23;7t28;5t87;at39;0d24;7t0;5t12;dt7;ct58;ad32;5t0;7t68;4t31;5m4;2t19;9t20;at115;8m25;8t1;ct0;5m56;7t519;1t53;at25;7t60;at71;at20;ct63;dt49;0t8;ct1;6m113;7t1;em10;at1;5t2;dt3;ct38;4t57;8t14;2t16;ct29;cd23;8t0;0t10;5d19;at0;0t65;ct3;at106;9t13;9d330;0d269;7t1;0m12;7t1;dd93;7m1;0t1;bd61;at0;dt76;ad95;bt1;1m104;9m1;8t1;1t142;am144;0t43";
+
+  // Decode: each token = responder (hex) + outcome (t/m/d) + minutes since previous ping.
+  var P = [], clock = 0;
+  (D1 + ";" + D2).split(";").forEach(function (tok) {
+    clock += parseInt(tok.slice(2), 10);
+    P.push({ r: parseInt(tok.charAt(0), 16), o: tok.charAt(1), m: clock });
+  });
+  var BASE = Date.UTC(2026, 5, 29);
+  var END = P[P.length - 1].m + 1;
+  var WEEK = 10080, NW = Math.ceil(END / WEEK);
+  var REL = Math.round((Date.UTC(2026, 7, 12) - BASE) / 60000);
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], DAY = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  function fmt(min) { var d = new Date(BASE + min * 60000); return DAY[d.getUTCDay()] + " " + d.getUTCDate() + " " + MON[d.getUTCMonth()] + ", " + ("0" + d.getUTCHours()).slice(-2) + ":" + ("0" + d.getUTCMinutes()).slice(-2); }
+  function wlabel(w) { var d = new Date(BASE + w * WEEK * 60000); return d.getUTCDate() + " " + MON[d.getUTCMonth()]; }
+  function clamp(x) { return Math.max(0, Math.min(1, x)); }
+
+  var s = { t: 0, playing: false, speed: 1440, sel: 15, last: 0 };
+  var el = function (id) { return document.getElementById(id); };
+
+  // Position of the "4.2" marker on the scrubber.
+  var scrub = el("scrub"); scrub.max = END;
+  function placeMarker() {
+    var w = scrub.offsetWidth, pct = REL / END, pad = 8;
+    var x = scrub.offsetLeft + pad + (w - 2 * pad) * pct;
+    el("mk").style.left = x + "px"; el("mlbl").style.left = x + "px";
+  }
+
+  function compute(t) {
+    var n = 0; while (n < P.length && P[n].m <= t) n++;
+    var score = [], c7 = [], m7 = [], i;
+    for (i = 0; i < 16; i++) { score.push(0.5); c7.push(0); m7.push(0); }
+    var wk = [], wm = [], wt = [];
+    for (i = 0; i < NW; i++) { wk.push(0); wm.push(0); wt.push(0); }
+    for (i = 0; i < n; i++) {
+      var p = P[i];
+      score[p.r] = clamp(score[p.r] + (p.o === "t" ? 0.08 : -0.12));
+      if (p.m > t - WEEK) { c7[p.r]++; if (p.o === "m") m7[p.r]++; }
+      var w = Math.floor(p.m / WEEK);
+      wk[w]++; if (p.o === "m") wm[w]++; if (p.o === "t") wt[w]++;
+    }
+    return { n: n, score: score, c7: c7, m7: m7, wk: wk, wm: wm, wt: wt };
+  }
+
+  function color(v) { return v >= 0.6 ? "var(--good)" : v >= 0.3 ? "var(--accent)" : "var(--bad)"; }
+
+  function render() {
+    var r = compute(s.t);
+    el("clock").innerHTML = fmt(s.t) + "<small>" + r.n + " of " + P.length + " pings played" + (s.t >= REL ? " · after 4.2" : " · before 4.2") + "</small>";
+    scrub.value = s.t;
+
+    var order = []; for (var i = 0; i < 16; i++) order.push(i);
+    order.sort(function (a, b) { return r.score[b] - r.score[a] || a - b; });
+    var hl = el("hl").checked, html = "";
+    order.forEach(function (i) {
+      var sc = r.score[i];
+      html += '<tr class="row' + (i === s.sel ? " sel" : "") + '" data-i="' + i + '"><td>' + NAMES[i] +
+        (hl && QUIET[i] ? '<span class="tag hl">went quiet</span>' : "") +
+        '</td><td class="num">' + sc.toFixed(2) + '</td><td><span class="sbar"><span class="sfill" style="width:' + Math.round(sc * 100) + '%;background:' + color(sc) + '"></span></span></td>' +
+        '<td class="num">' + r.c7[i] + '</td><td class="num">' + r.m7[i] + '</td></tr>';
+    });
+    el("rows").innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll("tr.row"), function (tr) {
+      tr.addEventListener("click", function () { s.sel = +tr.getAttribute("data-i"); render(); });
+    });
+
+    // detail tape for the selected responder
+    var tape = "", tk = 0, ms = 0, dn = 0;
+    for (var j = 0; j < r.n; j++) if (P[j].r === s.sel) {
+      tape += '<span class="dot ' + P[j].o + '" title="' + fmt(P[j].m) + '"></span>';
+      if (P[j].o === "t") tk++; else if (P[j].o === "m") ms++; else dn++;
+    }
+    el("detail").innerHTML = "<b>" + NAMES[s.sel] + "</b> · " + (tk + ms + dn) + " pings so far: " + tk + " taken, " + dn + " turned down, " + ms + " missed" +
+      '<div class="tape">' + tape + '</div><div class="fine" style="padding:6px 0 0;border:0">Green taken · amber turned down · red missed. Hover a dot for the time.</div>';
+
+    // weekly charts
+    var maxM = Math.max(10, Math.max.apply(null, r.wm)), cm = "", ca = "", ax = "";
+    for (var w = 0; w < NW; w++) {
+      var started = w * WEEK <= s.t;
+      var hM = started ? Math.round(r.wm[w] / maxM * 100) : 0;
+      var share = r.wk[w] ? r.wt[w] / r.wk[w] : 0;
+      cm += '<div class="col"><span class="colv">' + (started ? r.wm[w] : "") + '</span><div class="colbar m" style="height:' + hM + '%"></div></div>';
+      ca += '<div class="col"><span class="colv">' + (started && r.wk[w] ? Math.round(share * 100) + "%" : "") + '</span><div class="colbar" style="height:' + (started ? Math.round(share * 100) : 0) + '%"></div></div>';
+      ax += '<span' + (Math.floor(REL / WEEK) === w ? ' class="rel"' : "") + '>' + wlabel(w) + (Math.floor(REL / WEEK) === w ? "<br>4.2" : "") + '</span>';
+    }
+    el("chM").innerHTML = cm; el("chA").innerHTML = ca; el("axM").innerHTML = ax; el("axA").innerHTML = ax;
+
+    var fd = "";
+    for (var k = r.n - 1; k >= Math.max(0, r.n - 8); k--) {
+      var p = P[k], word = p.o === "t" ? "taken" : p.o === "m" ? "MISSED" : "turned down";
+      fd += '<div class="' + p.o + '"><span>' + NAMES[p.r] + " · " + word + '</span><span>' + fmt(p.m) + "</span></div>";
+    }
+    el("feed").innerHTML = fd || '<div class="fine" style="border:0">Press Play.</div>';
+    renderCompare();
+  }
+
+  // ---- Compare two responders ----
+  var HIST = [];
+  (function () { for (var i = 0; i < 16; i++) HIST.push([]); var sc = []; for (var j = 0; j < 16; j++) sc.push(0.5);
+    P.forEach(function (p) { sc[p.r] = clamp(sc[p.r] + (p.o === "t" ? 0.08 : -0.12)); HIST[p.r].push({ m: p.m, v: sc[p.r], o: p.o }); }); })();
+  s.a = 15; s.b = 12;
+
+  function linePath(i, t) {
+    var X = function (m) { return 34 + (m / END) * 556; }, Y = function (v) { return 164 - v * 140; };
+    var d = "M" + X(0) + "," + Y(0.5), cur = 0.5;
+    HIST[i].forEach(function (h) { if (h.m <= t) { d += " L" + X(h.m) + "," + Y(cur) + " L" + X(h.m) + "," + Y(h.v); cur = h.v; } });
+    d += " L" + X(t) + "," + Y(cur);
+    return { d: d, x: X(t), y: Y(cur) };
+  }
+  function stats(i, t) {
+    var o = { b: { n: 0, t: 0, d: 0, m: 0 }, a: { n: 0, t: 0, d: 0, m: 0 }, lastTaken: null };
+    P.forEach(function (p) { if (p.r !== i || p.m > t) return; var g = p.m < REL ? o.b : o.a; g.n++; g[p.o]++; if (p.o === "t") o.lastTaken = p.m; });
+    return o;
+  }
+  function pct(x, n) { return n ? Math.round(x / n * 100) + "%" : "–"; }
+  function renderCompare() {
+    var t = s.t, A = linePath(s.a, t), B = linePath(s.b, t), g = "";
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { var y = 164 - v * 140; g += '<line x1="34" x2="590" y1="' + y + '" y2="' + y + '" stroke="var(--line)" stroke-width="1"' + (v === 0.5 ? ' stroke-dasharray="3 3"' : "") + '/><text x="4" y="' + (y + 3) + '">' + v.toFixed(2) + '</text>'; });
+    var rx = 34 + (REL / END) * 556;
+    g += '<line x1="' + rx + '" x2="' + rx + '" y1="20" y2="164" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="4 3"/><text x="' + rx + '" y="14" text-anchor="middle" style="fill:var(--warn)">4.2 ships 12 Aug</text>';
+    for (var w = 0; w < NW; w += 2) { var x = 34 + (w * WEEK / END) * 556; g += '<text x="' + x + '" y="182">' + wlabel(w) + '</text>'; }
+    g += '<path d="' + B.d + '" fill="none" stroke="var(--warn)" stroke-width="2"/><path d="' + A.d + '" fill="none" stroke="var(--accent)" stroke-width="2.5"/>';
+    g += '<circle cx="' + A.x + '" cy="' + A.y + '" r="4" fill="var(--accent)"/><circle cx="' + B.x + '" cy="' + B.y + '" r="4" fill="var(--warn)"/>';
+    el("lines").innerHTML = g;
+    var sa = stats(s.a, t), sb = stats(s.b, t);
+    function row(label, f) { return "<tr><td>" + label + '</td><td class="num">' + f(sa) + '</td><td class="num">' + f(sb) + "</td></tr>"; }
+    var tb = '<table><thead><tr><th></th><th class="num a">' + NAMES[s.a] + '</th><th class="num b">' + NAMES[s.b] + "</th></tr></thead><tbody>" +
+      row("Before 12 Aug · pings", function (x) { return x.b.n; }) +
+      row("&nbsp;&nbsp;missed", function (x) { return x.b.m + " (" + pct(x.b.m, x.b.n) + ")"; }) +
+      row("&nbsp;&nbsp;turned down", function (x) { return x.b.d + " (" + pct(x.b.d, x.b.n) + ")"; }) +
+      row("Since 12 Aug · pings", function (x) { return x.a.n; }) +
+      row("&nbsp;&nbsp;taken", function (x) { return x.a.t; }) +
+      row("&nbsp;&nbsp;missed", function (x) { return x.a.m + " (" + pct(x.a.m, x.a.n) + ")"; }) +
+      row("&nbsp;&nbsp;turned down", function (x) { return x.a.d + " (" + pct(x.a.d, x.a.n) + ")"; }) +
+      row("Last taken ping", function (x) { return x.lastTaken == null ? "none yet" : fmt(x.lastTaken).split(",")[0]; }) +
+      "</tbody></table>" +
+      '<div class="note2">Counts run up to the replay clock, so press play or drag the slider to watch them build. Scores follow the same rules as the table below.</div>';
+    el("cmpTable").innerHTML = tb;
+  }
+  (function () {
+    var A = el("selA"), B = el("selB"), h = "";
+    NAMES.forEach(function (n, i) { h += '<option value="' + i + '">' + n + "</option>"; });
+    A.innerHTML = h; B.innerHTML = h; A.value = s.a; B.value = s.b;
+    A.addEventListener("change", function () { s.a = +A.value; render(); });
+    B.addEventListener("change", function () { s.b = +B.value; render(); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pair]"), function (b) {
+      b.addEventListener("click", function () { var p = b.getAttribute("data-pair").split(","); s.a = +p[0]; s.b = +p[1]; A.value = s.a; B.value = s.b; render(); });
+    });
+  })();
+
+  function setSpeed(v) {
+    s.speed = v;
+    Array.prototype.forEach.call(document.querySelectorAll("#speeds button"), function (b) { b.setAttribute("aria-pressed", +b.getAttribute("data-s") === v); });
+  }
+  function setPlaying(on) { s.playing = on; el("play").textContent = on ? "Pause" : "Play"; if (on) { s.last = 0; requestAnimationFrame(tick); } }
+  function tick(ts) {
+    if (!s.playing) return;
+    if (s.last) s.t = Math.min(END, s.t + (ts - s.last) / 1000 * s.speed);
+    s.last = ts;
+    render();
+    if (s.t >= END) { setPlaying(false); return; }
+    requestAnimationFrame(tick);
+  }
+
+  el("play").addEventListener("click", function () { if (s.t >= END) s.t = 0; setPlaying(!s.playing); });
+  el("step").addEventListener("click", function () {
+    setPlaying(false);
+    var i = 0; while (i < P.length && P[i].m <= s.t) i++;
+    if (i < P.length) s.t = P[i].m; render();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#speeds button"), function (b) {
+    b.addEventListener("click", function () { setSpeed(+b.getAttribute("data-s")); });
+  });
+  el("toStart").addEventListener("click", function () { setPlaying(false); s.t = 0; render(); });
+  el("to42").addEventListener("click", function () { setPlaying(false); s.t = REL - 1; render(); });
+  el("toEnd").addEventListener("click", function () { setPlaying(false); s.t = END; render(); });
+  scrub.addEventListener("input", function () { s.t = +scrub.value; render(); });
+  el("hl").addEventListener("change", render);
+  window.addEventListener("resize", placeMarker);
+
+  setSpeed(1440); placeMarker(); render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch score recovery prototype</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --ink: #1c2330; --muted: #5d6677; --line: #dde1e8;
+    --accent: #2457d6; --accent-ink: #ffffff; --good: #1c7c4d; --warn: #b4540a; --bad: #b3261e;
+    --bar: #c9d3ee; --chip: #e8efff; --hot: #fff4e0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b2029; --ink: #e8ebf1; --muted: #9aa3b5; --line: #2b3240;
+      --accent: #6d95ff; --accent-ink: #0c1220; --good: #5fcf94; --warn: #f0a15a; --bad: #ff8d84;
+      --bar: #34406a; --chip: #243056; --hot: #3a2e18;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .controls { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: center; margin-bottom: 16px; }
+  .ctl label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; color: var(--ink); padding: 8px 14px; font: inherit; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  input[type=range] { width: 220px; accent-color: var(--accent); }
+  .weekout { font-weight: 600; margin-left: 8px; }
+  .grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .card h2 { font-size: 13px; margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--line);
+    color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .callout { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--hot); }
+  .callout b { display: block; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 8px 16px; }
+  td { padding: 10px 16px; border-top: 1px solid var(--line); vertical-align: middle; }
+  tr.row { cursor: pointer; }
+  tr.row:hover td { background: var(--chip); }
+  tr.row.sel td { background: var(--chip); }
+  .rank { width: 34px; color: var(--muted); font-weight: 600; }
+  .barbox { width: 150px; height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar { height: 100%; background: var(--accent); transition: width .25s; }
+  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--chip); color: var(--accent); font-weight: 600; margin-left: 8px; }
+  .chip.quiet { background: var(--hot); color: var(--warn); }
+  .detail { padding: 14px 16px; border-top: 1px solid var(--line); }
+  .detail h3 { margin: 0 0 6px; font-size: 15px; }
+  .detail p { margin: 6px 0; color: var(--muted); }
+  .parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+  .part { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .part small { color: var(--muted); display: block; }
+  .part b { font-size: 16px; }
+  .note { font-size: 12px; color: var(--muted); padding: 10px 16px; border-top: 1px solid var(--line); }
+  .newtag { font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+
+  .phonewrap { display: flex; justify-content: center; padding: 18px 0; }
+  .phone { width: 280px; height: 520px; border: 8px solid #20242c; border-radius: 34px; background: var(--bg); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .phone .top { background: var(--accent); color: var(--accent-ink); padding: 18px 16px 12px; font-weight: 700; }
+  .phone .top small { display: block; font-weight: 400; opacity: .85; }
+  .phone .body { padding: 14px; flex: 1; overflow: auto; }
+  .pcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .big { font-size: 30px; font-weight: 700; }
+  .pcard.recov { border-color: var(--good); }
+  .pcard.recov b { color: var(--good); }
+  .btn { display: block; width: 100%; border: 0; border-radius: 10px; padding: 12px; font: inherit; font-weight: 600; cursor: pointer; background: var(--accent); color: var(--accent-ink); margin-top: 8px; }
+  .btn.alt { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn.good { background: var(--good); color: #fff; }
+  .count { font-size: 44px; font-weight: 700; text-align: center; margin: 6px 0; }
+  .toast { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 36px; }
+  .legend { color: var(--muted); font-size: 13px; margin-top: 16px; }
+  .scn { display: flex; flex-wrap: wrap; gap: 8px; }
+  .scn .btn { width: auto; margin: 0; padding: 9px 14px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 10px 0 8px; }
+  .log { font-size: 13px; max-height: 150px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+  .log div { padding: 5px 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+  .log div:first-child { border-top: 0; }
+  .log .empty { color: var(--muted); }
+  .log .t { color: var(--good); } .log .m { color: var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dispatch: let a quiet responder earn their way back</h1>
+  <p class="sub">Prototype for Helen. Example people and made-up numbers, not Rook data. Score rules (+0.08 taken, −0.12 missed or turned down) follow the routing code. Before 4.2: weights 0.45 / 0.40 / 0.15 and a 90-second wait. After 4.2: 0.60 / 0.25 / 0.15 and 60 seconds; the recovery rate is invented for illustration.</p>
+
+  <div class="controls">
+    <div class="ctl">
+      <label>Release</label>
+      <div class="seg" role="group" aria-label="Release">
+        <button id="rBefore" aria-pressed="false">Before 4.2</button>
+        <button id="rAfter" aria-pressed="true">After 4.2 (today)</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>Proposed change</label>
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mToday" aria-pressed="true">None</button>
+        <button id="mRecov" aria-pressed="false">Score recovery</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label for="wk">Weeks since Vesper's score bottomed out</label>
+      <input id="wk" type="range" min="0" max="6" step="1" value="0">
+      <span class="weekout" id="wkout">Week 0</span>
+    </div>
+    <div class="ctl">
+      <label>Reset</label>
+      <button class="btn alt" id="reset" style="margin:0;padding:8px 14px">Clear simulated pings</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2>Quick scenarios · run Vesper's pings without waiting 60 seconds each</h2>
+    <div style="padding:14px 16px">
+      <div class="scn">
+        <button class="btn alt" data-scn="miss5">Miss 5 pings</button>
+        <button class="btn alt" data-scn="down5">Turn down 5 pings</button>
+        <button class="btn alt" data-scn="take5">Take 5 in a row</button>
+        <button class="btn alt" data-scn="miss10">Miss 10 pings</button>
+        <button class="btn alt" data-scn="down10">Turn down 10 pings</button>
+        <button class="btn alt" data-scn="take7">Take 7 in a row</button>
+        <button class="btn alt" data-scn="replay">Replay Vesper's 17 pings since 12 Aug</button>
+      </div>
+      <p class="hint" id="scnHint">Scenarios add pings on top of where the screen is now. Missing and turning down cost the same 0.12; a taken ping adds 0.08. The replay starts Vesper at 0.90 under the 4.2 rules, then runs the outcomes in order (the order within a day is a guess).</p>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="console">
+      <h2>Kip's handler console · who gets pinged first</h2>
+      <div class="callout"><b>New callout · Old Town · structural collapse (example)</b>Ranked responders, best match first. Click a row to see why.</div>
+      <table>
+        <thead><tr><th></th><th>Responder</th><th>Match score</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="detail" id="detail"></div>
+      <div class="note" id="consoleNote"></div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Vesper's phone app</h2>
+        <div class="phonewrap"><div class="phone" id="phone"></div></div>
+      </div>
+      <p class="legend">Press "Simulate a callout" on the phone, then take it, turn it down, or let the 60 seconds run out. Watch Vesper's rank change on the console.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Example responders. Proximity and capability are fixed example values.
+  var W = { prox: 0.60, acc: 0.25, cap: 0.15 };
+  var people = [
+    { id: "n", name: "Nightwell",      prox: 0.62, acc: 0.85, cap: 1.00 },
+    { id: "v", name: "Captain Vantage",prox: 0.56, acc: 0.70, cap: 1.00 },
+    { id: "l", name: "The Longcast",   prox: 0.55, acc: 0.62, cap: 0.75 },
+    { id: "d", name: "Example D",      prox: 0.50, acc: 0.60, cap: 0.75 },
+    { id: "s", name: "Vesper",         prox: 0.60, acc: null, cap: 1.00, me: true }
+  ];
+  var pingsToday = [2, 1, 1, 1, 1, 1, 1];
+  var pingsRecov = [2, 3, 5, 7, 9, 10, 11];
+
+  var WAFTER = { prox: 0.60, acc: 0.25, cap: 0.15 };
+  var WBEFORE = { prox: 0.45, acc: 0.40, cap: 0.15 };
+  var state = { release: "after", mode: "today", week: 0, events: [], log: [], startOverride: null, run: 0, sel: "s", phone: "home", secs: 60, timer: null, toast: "" };
+
+  function clamp(x) { return Math.max(0, Math.min(1, x)); }
+  function baseAcc() {
+    if (state.release === "before") return 0.90; // in good standing before 4.2 (example)
+    if (state.mode === "today") return 0.05;
+    return 0.5 - (0.5 - 0.05) * Math.pow(0.65, state.week); // closes 35% of the gap each week
+  }
+  function vesperAcc() {
+    var a = state.startOverride != null ? state.startOverride : baseAcc();
+    state.events.forEach(function (e) { a = clamp(e === "t" ? a + 0.08 : a - 0.12); });
+    return a;
+  }
+  function vesperRank() { return ranked().map(function (p) { return p.id; }).indexOf("s") + 1; }
+  function addEvent(kind) {
+    state.events.push(kind);
+    var label = kind === "t" ? "Taken" : kind === "d" ? "Turned down" : "Missed";
+    state.log.unshift({ k: kind, text: label, after: vesperAcc(), rank: vesperRank() });
+    if (state.log.length > 40) state.log.pop();
+  }
+  function clearRun() { clearInterval(state.timer); state.run += 1; state.events = []; state.log = []; state.startOverride = null; state.phone = "home"; state.toast = ""; }
+  function renderLog() {
+    var el = document.getElementById("log");
+    if (!state.log.length) { el.innerHTML = '<div class="empty">No pings yet. Run a scenario or simulate one on the phone.</div>'; return; }
+    el.innerHTML = state.log.map(function (l) {
+      return '<div class="' + (l.k === "t" ? "t" : "m") + '"><span>' + l.text + '</span><span>score ' + f2(l.after) + ' · Vesper ranked ' + l.rank + '</span></div>';
+    }).join("");
+  }
+  function runSeq(seq, startAt) {
+    var id = ++state.run;
+    var i = 0;
+    if (startAt != null) { state.events = []; state.log = []; state.startOverride = startAt; }
+    (function step() {
+      if (id !== state.run || i >= seq.length) { if (id === state.run) { state.toast = "Scenario finished."; render(); } return; }
+      var k = seq[i++];
+      addEvent(k);
+      state.toast = (k === "t" ? "Taken. +0.08." : k === "d" ? "Turned down. −0.12." : "Missed. −0.12.") + " (" + i + " of " + seq.length + ")";
+      render();
+      setTimeout(step, 300);
+    })();
+  }
+  function rep(k, n) { var a = []; for (var i = 0; i < n; i++) a.push(k); return a; }
+  function accOf(p) { return p.me ? vesperAcc() : p.acc; }
+  function total(p) { return W.prox * p.prox + W.acc * accOf(p) + W.cap * p.cap; }
+  function ranked() { return people.slice().sort(function (a, b) { return total(b) - total(a); }); }
+  function f2(x) { return x.toFixed(2); }
+
+  function renderConsole() {
+    var list = ranked();
+    var rows = document.getElementById("rows");
+    rows.innerHTML = "";
+    list.forEach(function (p, i) {
+      var tr = document.createElement("tr");
+      tr.className = "row" + (p.id === state.sel ? " sel" : "");
+      tr.tabIndex = 0;
+      var tag = "";
+      if (p.me) {
+        var acc = vesperAcc();
+        if (state.mode === "recovery" && acc < 0.5) tag = '<span class="chip">Recovering ↑</span>';
+        else if (acc < 0.3) tag = '<span class="chip quiet">Quiet</span>';
+      }
+      tr.innerHTML = '<td class="rank">' + (i + 1) + '</td><td>' + p.name + tag + '</td>' +
+        '<td><div class="barbox"><div class="bar" style="width:' + Math.round(total(p) * 100) + '%"></div></div></td>' +
+        '<td>' + f2(total(p)) + '</td>';
+      tr.addEventListener("click", function () { state.sel = p.id; renderConsole(); });
+      tr.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); state.sel = p.id; renderConsole(); } });
+      rows.appendChild(tr);
+    });
+    var p = people.filter(function (x) { return x.id === state.sel; })[0];
+    var rank = list.indexOf(p) + 1;
+    var d = '<h3>' + p.name + ' · ranked ' + rank + ' of ' + list.length + '</h3>' +
+      '<div class="parts">' +
+      '<div class="part"><small>Proximity × ' + f2(W.prox) + '</small><b>' + f2(W.prox * p.prox) + '</b></div>' +
+      '<div class="part"><small>Recent acceptance × ' + f2(W.acc) + '</small><b>' + f2(W.acc * accOf(p)) + '</b></div>' +
+      '<div class="part"><small>Capability × ' + f2(W.cap) + '</small><b>' + f2(W.cap * p.cap) + '</b></div></div>';
+    if (p.me) {
+      var a = vesperAcc();
+      d += '<p>Recent acceptance score: <b>' + f2(a) + '</b> (a new responder starts at 0.50).</p>';
+      if (state.release === "before") {
+        d += '<p>Before 4.2 the ping waited 90 seconds and recent acceptance counted for more (0.40, now 0.25). Vesper sits at the top of the list.</p>';
+      } else if (state.mode === "today") {
+        d += '<p>Nothing fades. Old misses keep counting until Vesper takes about 6–7 pings in a row, and a low-ranked responder is rarely pinged at all.</p>';
+      } else {
+        d += '<p>Old misses lose weight each week, so the score drifts back toward 0.50 even while pings are scarce. Kip sees the “Recovering” marker instead of an unexplained low rank.</p>';
+      }
+    } else {
+      d += '<p>Recent acceptance score: <b>' + f2(p.acc) + '</b>. Example value.</p>';
+    }
+    document.getElementById("detail").innerHTML = d;
+    document.getElementById("consoleNote").innerHTML = state.release === "before"
+      ? 'Before 4.2: weights 0.45 / 0.40 / 0.15 and a 90-second wait. Example numbers, not Rook data.'
+      : state.mode === "recovery"
+      ? 'The “Recovering” marker and the weekly fade are proposals, <span class="newtag">NEW</span> not in the console today. We have not checked what Kip sees now.'
+      : 'This is how ranking behaves today: no fade, no marker. We have not checked what the console shows Kip now.';
+  }
+
+  function renderPhone() {
+    var ph = document.getElementById("phone");
+    var acc = vesperAcc();
+    var pings = state.release === "before" ? 12 : (state.mode === "today" ? pingsToday : pingsRecov)[state.week];
+    var wait = state.release === "before" ? 90 : 60;
+    var h = '<div class="top">Dispatch<small>Vesper · Available</small></div><div class="body">';
+    if (state.phone === "home") {
+      h += '<div class="pcard"><small>Pings this week (example)</small><div class="big">' + pings + '</div></div>';
+      if (state.release === "before") {
+        h += '<div class="pcard"><small>Pings arrive regularly. Each one waits ' + wait + ' seconds for you.</small></div>';
+      } else if (state.mode === "recovery" && acc < 0.5) {
+        h += '<div class="pcard recov"><b>Your ping rate is recovering</b><br><small>Recent missed pings are fading from your score. You will hear from us more each week.</small></div>';
+      } else if (state.mode === "recovery") {
+        h += '<div class="pcard recov"><b>You are back to a normal ping rate</b></div>';
+      } else {
+        h += '<div class="pcard"><small>Your phone has been quiet and the app does not say why.</small></div>';
+      }
+      h += '<button class="btn" id="sim">Simulate a callout</button>';
+    } else if (state.phone === "ping") {
+      h += '<div class="pcard"><b>Callout · Old Town</b><br><small>Structural collapse (example)</small></div>' +
+        '<div class="count" id="count">' + state.secs + '</div><div style="text-align:center;color:var(--muted)">seconds to answer</div>' +
+        '<button class="btn good" id="take">Take it</button><button class="btn alt" id="down">Turn it down</button>' +
+        '<button class="btn alt" id="skip">Skip ahead: let it run out (miss)</button>';
+    }
+    h += '<div class="toast" id="toast">' + state.toast + '</div></div>';
+    ph.innerHTML = h;
+    var sim = document.getElementById("sim");
+    if (sim) sim.addEventListener("click", startPing);
+    var take = document.getElementById("take"); if (take) take.addEventListener("click", function () { finish("taken"); });
+    var skip = document.getElementById("skip"); if (skip) skip.addEventListener("click", function () { finish("missed"); });
+    var down = document.getElementById("down"); if (down) down.addEventListener("click", function () { finish("down"); });
+  }
+
+  function startPing() {
+    state.phone = "ping"; state.secs = state.release === "before" ? 90 : 60; state.toast = "";
+    clearInterval(state.timer);
+    state.timer = setInterval(function () {
+      state.secs -= 1;
+      var c = document.getElementById("count");
+      if (c) c.textContent = state.secs;
+      if (state.secs <= 0) finish("missed");
+    }, 1000);
+    renderPhone();
+  }
+  function finish(kind) {
+    clearInterval(state.timer);
+    if (kind === "taken") { addEvent("t"); state.toast = "Taken. +0.08 to your recent-acceptance score."; }
+    else if (kind === "down") { addEvent("d"); state.toast = "Turned down. −0.12 to your score."; }
+    else { addEvent("m"); state.toast = "Missed. The ping moved on. −0.12, same as turning it down."; }
+    state.phone = "home";
+    render();
+  }
+
+  function render() {
+    var before = state.release === "before";
+    W = before ? WBEFORE : WAFTER;
+    document.getElementById("rBefore").setAttribute("aria-pressed", before);
+    document.getElementById("rAfter").setAttribute("aria-pressed", !before);
+    document.getElementById("mToday").setAttribute("aria-pressed", state.mode === "today");
+    document.getElementById("mRecov").setAttribute("aria-pressed", state.mode === "recovery");
+    document.getElementById("mRecov").disabled = before;
+    document.getElementById("wk").disabled = before;
+    document.getElementById("mRecov").style.opacity = before ? 0.4 : 1;
+    document.getElementById("wkout").textContent = "Week " + state.week;
+    renderConsole();
+    renderPhone();
+    renderLog();
+  }
+
+  function setRelease(r) { clearRun(); state.release = r; if (r === "before") state.mode = "today"; render(); }
+  function soft() { state.run += 1; state.startOverride = null; clearInterval(state.timer); state.phone = "home"; }
+  document.getElementById("rBefore").addEventListener("click", function () { setRelease("before"); });
+  document.getElementById("rAfter").addEventListener("click", function () { setRelease("after"); });
+  document.getElementById("mToday").addEventListener("click", function () { soft(); state.mode = "today"; render(); });
+  document.getElementById("mRecov").addEventListener("click", function () { soft(); state.mode = "recovery"; render(); });
+  document.getElementById("wk").addEventListener("input", function (e) { soft(); state.week = +e.target.value; render(); });
+  document.getElementById("reset").addEventListener("click", function () { clearRun(); render(); });
+  document.querySelectorAll("[data-scn]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var k = btn.getAttribute("data-scn");
+      clearInterval(state.timer); state.phone = "home";
+      if (k === "miss5") runSeq(rep("m", 5));
+      else if (k === "down5") runSeq(rep("d", 5));
+      else if (k === "take5") runSeq(rep("t", 5));
+      else if (k === "miss10") runSeq(rep("m", 10));
+      else if (k === "down10") runSeq(rep("d", 10));
+      else if (k === "take7") runSeq(rep("t", 7));
+      else if (k === "replay") {
+        state.release = "after"; state.mode = "today";
+        runSeq(["m","m","t","t","t","d","m","m","t","t","m","m","m","d","d","m","m"], 0.90);
+      }
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>
